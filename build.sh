@@ -2,7 +2,7 @@
 
 set -e
 
-docker run --rm --name lib-build \
+docker run --rm --name aws.lambdahostsimulator-build \
  -v /var/run/docker.sock:/var/run/docker.sock \
  -v $PWD:/repo \
  -w /repo \

@@ -1,6 +1,6 @@
 @ECHO OFF
 
-docker run --rm -it --name lib-build ^
+docker run --rm -it --name aws.lambdahostsimulator-build ^
  -v /var/run/docker.sock:/var/run/docker.sock ^
  -v %cd%:/repo ^
  -w /repo ^

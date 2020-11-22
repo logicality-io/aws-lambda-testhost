@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using static Bullseye.Targets;
 using static SimpleExec.Command;
@@ -25,17 +25,17 @@ namespace Build
                 Directory.CreateDirectory(ArtifactsDir);
             });
 
-            Target(Build, () => Run("dotnet", "build Lib.sln -c Release"));
+            Target(Build, () => Run("dotnet", "build AWS.LambdaHostSimulator.sln -c Release"));
 
             Target(
                 Test,
                 DependsOn(Build),
-                () => Run("dotnet", $"test test/Lib.Tests/Lib.Tests.csproj -c Release -r {ArtifactsDir} --no-build -l trx;LogFileName=Lib.Tests.xml --verbosity=normal"));
+                () => Run("dotnet", $"test test/AWS.LambdaHostSimulator.Tests/AWS.LambdaHostSimulator.Tests.csproj -c Release -r {ArtifactsDir} --no-build -l trx;LogFileName=AWS.LambdaHostSimulator.Tests.xml --verbosity=normal"));
 
             Target(
                 Pack,
                 DependsOn(Build),
-                new[] { "Lib" },
+                new[] { "AWS.LambdaHostSimulator" },
                 project => Run("dotnet", $"pack src/{project}/{project}.csproj -c Release -o {ArtifactsDir} --no-build"));
 
             Target(Publish, DependsOn(Pack), () =>

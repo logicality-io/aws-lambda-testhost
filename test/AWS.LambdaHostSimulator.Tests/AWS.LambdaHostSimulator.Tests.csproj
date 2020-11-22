@@ -3,8 +3,8 @@
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <IsPackable>false</IsPackable>
-    <AssemblyName>$(Org).Lib.Tests</AssemblyName>
-    <RootNamespace>$(Org).Lib</RootNamespace>
+    <AssemblyName>$(Org).AWS.LambdaHostSimulator.Tests</AssemblyName>
+    <RootNamespace>$(Org).AWS.LambdaHostSimulator</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
@@ -19,7 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Lib\Lib.csproj" />
+    <ProjectReference Include="..\..\src\AWS.LambdaHostSimulator\AWS.LambdaHostSimulator.csproj" />
   </ItemGroup>
 
 </Project>
