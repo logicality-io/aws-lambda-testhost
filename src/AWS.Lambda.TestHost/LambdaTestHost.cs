@@ -32,13 +32,13 @@ namespace Logicality.AWS.Lambda.TestHost
         /// <summary>
         /// The URL that the LambdaTestHost is handling request.
         /// </summary>
-        public Uri ServiceURL { get; private set; }
+        public Uri ServiceUrl { get; private set; }
 
         public static async ValueTask<LambdaTestHost> Start(LambdaTestHostSettings settings)
         {
             var host = new LambdaTestHost(settings);
             await host._webHost.StartAsync();
-            host.ServiceURL = host._webHost.GetUris().Single();
+            host.ServiceUrl = host._webHost.GetUris().Single();
             return host;
         }
 

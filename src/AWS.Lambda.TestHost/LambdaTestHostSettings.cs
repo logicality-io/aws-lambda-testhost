@@ -27,7 +27,7 @@ namespace Logicality.AWS.Lambda.TestHost
 
         internal Func<ILambdaContext> CreateContext { get; }
 
-        public IReadOnlyDictionary<string, LambdaFunctionInfo> Functions => _functions;
+        internal IReadOnlyDictionary<string, LambdaFunctionInfo> Functions => _functions;
 
         public void AddFunction(LambdaFunctionInfo lambdaFunctionInfo)
         {

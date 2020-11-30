@@ -35,7 +35,7 @@ namespace Logicality.AWS.Lambda.TestHost
 
                 var instance = new LambdaInstance(_lambdaFunctionInfo);
                 _counter++;
-                _usedInstances.Add(instance.InstanceId, result);
+                _usedInstances.Add(instance.InstanceId, result!);
                 return instance;
             }
         }
