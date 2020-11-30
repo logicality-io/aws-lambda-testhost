@@ -1,0 +1,29 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <AssemblyName>$(Org).AWS.Lambda.TestHost.Tests</AssemblyName>
+    <RootNamespace>$(Org).AWS.Lambda.TestHost</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Amazon.Lambda.APIGatewayEvents" Version="2.3.0" />
+    <PackageReference Include="AWSSDK.Lambda" Version="3.5.3.1" />
+    <PackageReference Include="MartinCostello.Logging.XUnit" Version="0.1.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.8.0" />
+    <PackageReference Include="OneOf" Version="2.1.155" />
+    <PackageReference Include="Shouldly" Version="4.0.1" />
+    <PackageReference Include="xunit.core" Version="2.4.1" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.4.3">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\AWS.Lambda.TestHost\AWS.Lambda.TestHost.csproj" />
+    <ProjectReference Include="..\LambdaFunctions\AWSServerless1\AWSServerless1.csproj" />
+  </ItemGroup>
+
+</Project>
