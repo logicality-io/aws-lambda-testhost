@@ -25,17 +25,17 @@ namespace Build
                 Directory.CreateDirectory(ArtifactsDir);
             });
 
-            Target(Build, () => Run("dotnet", "build AWS.LambdaHostSimulator.sln -c Release"));
+            Target(Build, () => Run("dotnet", "build AWS.Lambda.TestHost.sln -c Release"));
 
             Target(
                 Test,
                 DependsOn(Build),
-                () => Run("dotnet", $"test test/AWS.LambdaHostSimulator.Tests/AWS.LambdaHostSimulator.Tests.csproj -c Release -r {ArtifactsDir} --no-build -l trx;LogFileName=AWS.LambdaHostSimulator.Tests.xml --verbosity=normal"));
+                () => Run("dotnet", $"test test/AWS.Lambda.TestHost.Tests -c Release -r {ArtifactsDir} --no-build -l trx;LogFileName=AWS.Lambda.TestHost.Tests.xml --verbosity=normal"));
 
             Target(
                 Pack,
                 DependsOn(Build),
-                new[] { "AWS.LambdaHostSimulator" },
+                new[] { "AWS.Lambda.ClientExtensions",  "AWS.Lambda.TestHost" },
                 project => Run("dotnet", $"pack src/{project}/{project}.csproj -c Release -o {ArtifactsDir} --no-build"));
 
             Target(Publish, DependsOn(Pack), () =>

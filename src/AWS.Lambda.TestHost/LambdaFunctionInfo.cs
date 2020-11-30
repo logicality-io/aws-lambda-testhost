@@ -4,7 +4,7 @@ using Amazon.Lambda.Core;
 
 namespace Logicality.AWS.Lambda.TestHost
 {
-    public class LambdaFunction
+    public class LambdaFunctionInfo
     {
         /// <summary>
         ///     Information about a lambda function that can be invoked.
@@ -18,10 +18,14 @@ namespace Logicality.AWS.Lambda.TestHost
         /// <param name="handlerMethod">
         ///     The lambda function method that will be invoked.
         /// </param>
-        public LambdaFunction(
+        /// <param name="reservedConcurrency">
+        ///     The reserved concurrency.
+        /// </param>
+        public LambdaFunctionInfo(
             string name,
             Type functionType,
-            string handlerMethod)
+            string handlerMethod,
+            int? reservedConcurrency = null)
         {
             Name = name;
             Type = functionType;
@@ -36,6 +40,8 @@ namespace Logicality.AWS.Lambda.TestHost
             {
                 Serializer = (Activator.CreateInstance(attribute.SerializerType) as ILambdaSerializer)!;
             }
+
+            ReservedConcurrency = reservedConcurrency;
         }
 
         internal Type Type { get; }
@@ -45,5 +51,7 @@ namespace Logicality.AWS.Lambda.TestHost
         internal MethodInfo HandlerMethod { get; }
 
         internal ILambdaSerializer? Serializer { get; }
+
+        internal int? ReservedConcurrency { get; } = null;
     }
 }

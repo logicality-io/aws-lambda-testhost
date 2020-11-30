@@ -22,6 +22,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\AWS.Lambda.ClientExtensions\AWS.Lambda.ClientExtensions.csproj" />
     <ProjectReference Include="..\..\src\AWS.Lambda.TestHost\AWS.Lambda.TestHost.csproj" />
     <ProjectReference Include="..\LambdaFunctions\AWSServerless1\AWSServerless1.csproj" />
   </ItemGroup>

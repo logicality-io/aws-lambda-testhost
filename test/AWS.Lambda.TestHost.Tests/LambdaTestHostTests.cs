@@ -1,13 +1,10 @@
 ﻿using System.IO;
-using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Amazon.Lambda;
 using Amazon.Lambda.APIGatewayEvents;
 using Amazon.Lambda.Core;
-using Amazon.Lambda.Model;
 using Amazon.Runtime;
-using Microsoft.Extensions.ObjectPool;
 using Shouldly;
 using Xunit;
 using Xunit.Abstractions;
@@ -18,6 +15,7 @@ namespace Logicality.AWS.Lambda.TestHost
     {
         private readonly ITestOutputHelper _outputHelper;
         private LambdaTestHost _testHost;
+        private AmazonLambdaClient _lambdaClient;
 
         public LambdaTestHostTests(ITestOutputHelper outputHelper)
         {
@@ -27,13 +25,6 @@ namespace Logicality.AWS.Lambda.TestHost
         [Fact]
         public async Task Can_invoke_lambda_function()
         {
-            var awsCredentials = new BasicAWSCredentials("not", "used");
-            var lambdaConfig = new AmazonLambdaConfig
-            {
-                ServiceURL = _testHost.ServiceURL.ToString()
-            };
-            var lambdaClient = new AmazonLambdaClient(awsCredentials, lambdaConfig);
-
             var request = new APIGatewayProxyRequest
             {
                 Body = "{ \"a\" = \"b\" }",
@@ -45,14 +36,7 @@ namespace Logicality.AWS.Lambda.TestHost
                     Path = "/foo/bar"
                 }
             };
-            var payload = JsonSerializer.Serialize(request);
-            var invokeRequest = new InvokeRequest
-            {
-                FunctionName = "AWSServerless1",
-                InvocationType = InvocationType.RequestResponse,
-                Payload = payload,
-            };
-            var invokeResponse = await lambdaClient.InvokeAsync(invokeRequest);
+            var invokeResponse = await _lambdaClient.InvokeRequestAsync("AWSServerless1", request);
 
             invokeResponse.StatusCode.ShouldBe(200);
             invokeResponse.Payload.Length.ShouldBeGreaterThan(0);
@@ -74,11 +58,18 @@ namespace Logicality.AWS.Lambda.TestHost
                 Logger = new XunitLambdaLogger(_outputHelper)
             });
             settings.AddFunction(
-                new LambdaFunction(
+                new LambdaFunctionInfo(
                     "AWSServerless1",
-                    typeof(AWSServerless1.Functions),
-                    nameof(AWSServerless1.Functions.Get)));
+                    typeof(AWSServerless1.Function),
+                    nameof(AWSServerless1.Function.Get)));
             _testHost = await LambdaTestHost.Start(settings);
+
+            var awsCredentials = new BasicAWSCredentials("not", "used");
+            var lambdaConfig = new AmazonLambdaConfig
+            {
+                ServiceURL = _testHost.ServiceURL.ToString()
+            };
+            _lambdaClient = new AmazonLambdaClient(awsCredentials, lambdaConfig);
         }
 
         public async Task DisposeAsync() 

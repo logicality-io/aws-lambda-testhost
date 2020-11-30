@@ -2,7 +2,6 @@
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Security.Policy;
 using System.Text;
 using System.Threading.Tasks;
 using Amazon.Lambda.Core;
@@ -10,7 +9,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.ObjectPool;
+using Microsoft.Extensions.Logging;
 
 namespace Logicality.AWS.Lambda.TestHost
 {
@@ -46,10 +45,14 @@ namespace Logicality.AWS.Lambda.TestHost
         private class Startup
         {
             private readonly LambdaTestHostSettings _settings;
+            private readonly LambdaAccountPool _lambdaAccountPool;
 
             public Startup(LambdaTestHostSettings settings)
             {
                 _settings = settings;
+                _lambdaAccountPool = new LambdaAccountPool(
+                    settings.AccountConcurrencyLimit,
+                    settings.Functions);
             }
 
             public void ConfigureServices(IServiceCollection services)
@@ -68,6 +71,7 @@ namespace Logicality.AWS.Lambda.TestHost
                     {
                         endpoints.MapPost("/{functionName}/invocations", async ctx =>
                         {
+                            var logger = ctx.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger<LambdaTestHost>();
                             var functionName = (string)ctx.Request.RouteValues["functionName"];
                             if (!_settings.Functions.TryGetValue(functionName, out var lambdaFunction))
                             {
@@ -77,11 +81,14 @@ namespace Logicality.AWS.Lambda.TestHost
 
                             try
                             {
-
                                 var streamReader = new StreamReader(ctx.Request.Body, Encoding.UTF8);
                                 var payload = await streamReader.ReadToEndAsync();
 
-                                var instance = Activator.CreateInstance(lambdaFunction.Type);
+                                var lambdaInstance = _lambdaAccountPool.Get(functionName);
+                                if (lambdaInstance == null)
+                                {
+                                    ctx.Response.StatusCode = 429;
+                                }
 
                                 var settings = ctx.RequestServices.GetRequiredService<LambdaTestHostSettings>();
 
@@ -89,38 +96,37 @@ namespace Logicality.AWS.Lambda.TestHost
 
                                 var parameters = BuildParameters(lambdaFunction, context, payload);
 
-                                var lambdaReturnObject = lambdaFunction.HandlerMethod.Invoke(instance, parameters);
+                                var lambdaReturnObject = lambdaFunction.HandlerMethod.Invoke(lambdaInstance.FunctionInstance, parameters);
                                 var responseBody = await ProcessReturnAsync(lambdaFunction, lambdaReturnObject);
 
                                 ctx.Response.StatusCode = 200;
                                 await ctx.Response.WriteAsync(responseBody);
+
+                                _lambdaAccountPool.Return(lambdaInstance);
                             }
                             catch (TargetInvocationException ex)
                             {
-
+                                logger.LogError(ex.InnerException, "Error invoking function");
+                                ctx.Response.StatusCode = 500;
                             }
                             catch(Exception ex)
                             {
-
+                                logger.LogError(ex.InnerException, "Error invoking function");
+                                ctx.Response.StatusCode = 500;
                             }
                         });
                     });
                 });
             }
 
-            private void GetInstance(LambdaFunction lambdaFunction)
-            {
-
-            }
-
             /// Adapted from Amazon.Lambda.TestTools
-            private static object[] BuildParameters(LambdaFunction function, ILambdaContext context, string? payload)
+            private static object[] BuildParameters(LambdaFunctionInfo functionInfo, ILambdaContext context, string? payload)
             {
-                var parameters = function.HandlerMethod.GetParameters();
+                var parameters = functionInfo.HandlerMethod.GetParameters();
                 var parameterValues = new object[parameters.Length];
 
                 if (parameterValues.Length > 2)
-                    throw new Exception($"Method {function.HandlerMethod.Name} has too many parameters, {parameterValues.Length}. Methods called by Lambda" +
+                    throw new Exception($"Method {functionInfo.HandlerMethod.Name} has too many parameters, {parameterValues.Length}. Methods called by Lambda" +
                                         $"can have at most 2 parameters. The first is the input object and the second is an ILambdaContext.");
 
                 for (var i = 0; i < parameters.Length; i++)
@@ -132,9 +138,9 @@ namespace Logicality.AWS.Lambda.TestHost
                     else if (payload != null)
                     {
                         var stream = new MemoryStream(Encoding.UTF8.GetBytes(payload));
-                        if (function.Serializer != null)
+                        if (functionInfo.Serializer != null)
                         {
-                            var genericMethodInfo = function.Serializer.GetType()
+                            var genericMethodInfo = functionInfo.Serializer.GetType()
                                 .GetMethods(BindingFlags.Public | BindingFlags.Instance)
                                 .FirstOrDefault(x => string.Equals(x.Name, "Deserialize"));
 
@@ -145,7 +151,7 @@ namespace Logicality.AWS.Lambda.TestHost
 
                             try
                             {
-                                parameterValues[i] = methodInfo.Invoke(function.Serializer, new object[] { stream });
+                                parameterValues[i] = methodInfo.Invoke(functionInfo.Serializer, new object[] { stream });
                             }
                             catch (Exception e)
                             {
@@ -162,7 +168,7 @@ namespace Logicality.AWS.Lambda.TestHost
                 return parameterValues;
             }
 
-            private static async Task<string?> ProcessReturnAsync(LambdaFunction function, object? lambdaReturnObject)
+            private static async Task<string?> ProcessReturnAsync(LambdaFunctionInfo functionInfo, object? lambdaReturnObject)
             {
                 Stream? lambdaReturnStream = null;
 
@@ -190,7 +196,7 @@ namespace Logicality.AWS.Lambda.TestHost
                             else
                             {
                                 lambdaReturnStream = new MemoryStream();
-                                function.Serializer!.Serialize(taskResult, lambdaReturnStream);
+                                functionInfo.Serializer!.Serialize(taskResult, lambdaReturnStream);
                             }
                         }
                     }
@@ -198,7 +204,7 @@ namespace Logicality.AWS.Lambda.TestHost
                 else
                 {
                     lambdaReturnStream = new MemoryStream();
-                    function.Serializer!.Serialize(lambdaReturnObject, lambdaReturnStream);
+                    functionInfo.Serializer!.Serialize(lambdaReturnObject, lambdaReturnStream);
                 }
 
                 if (lambdaReturnStream == null)
