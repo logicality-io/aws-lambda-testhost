@@ -1,10 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
-    <IsPackable>false</IsPackable>
-    <AssemblyName>$(Org).AWS.Lambda.TestHost.Tests</AssemblyName>
-    <RootNamespace>$(Org).AWS.Lambda.TestHost</RootNamespace>
+    <TargetFrameworks>netcoreapp3.1;net5.0</TargetFrameworks>
+    <AssemblyName>$(ComponentBase).Lambda.TestHost.Tests</AssemblyName>
+    <RootNamespace>$(ComponentBase).Lambda.TestHost</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
@@ -24,8 +23,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\AWS.Lambda.ClientExtensions\AWS.Lambda.ClientExtensions.csproj" />
-    <ProjectReference Include="..\..\src\AWS.Lambda.TestHost\AWS.Lambda.TestHost.csproj" />
+    <ProjectReference Include="..\..\src\Lambda.ClientExtensions\Lambda.ClientExtensions.csproj" />
+    <ProjectReference Include="..\..\src\Lambda.TestHost\Lambda.TestHost.csproj" />
   </ItemGroup>
 
 </Project>

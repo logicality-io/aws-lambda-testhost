@@ -30,12 +30,12 @@ namespace Build
             Target(
                 Test,
                 DependsOn(Build),
-                () => Run("dotnet", $"test test/AWS.Lambda.TestHost.Tests -c Release -r {ArtifactsDir} --no-build -l trx;LogFileName=AWS.Lambda.TestHost.Tests.xml --verbosity=normal"));
+                () => Run("dotnet", $"test test/Lambda.TestHost.Tests -c Release -r {ArtifactsDir} --no-build -l trx;LogFileName=AWS.Lambda.TestHost.Tests.xml --verbosity=normal"));
 
             Target(
                 Pack,
                 DependsOn(Build),
-                new[] { "AWS.Lambda.ClientExtensions",  "AWS.Lambda.TestHost" },
+                new[] { "Lambda.ClientExtensions",  "Lambda.TestHost" },
                 project => Run("dotnet", $"pack src/{project}/{project}.csproj -c Release -o {ArtifactsDir} --no-build"));
 
             Target(Publish, DependsOn(Pack), () =>

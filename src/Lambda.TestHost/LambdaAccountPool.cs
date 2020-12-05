@@ -31,7 +31,10 @@ namespace Logicality.AWS.Lambda.TestHost
                 Interlocked.Decrement(ref _counter);
                 return null;
             }
-            return _instancePools[functionName].Get();
+
+            return _instancePools.TryGetValue(functionName, out var item) 
+                ? item.Get() 
+                : null;
         }
 
         public void Return(LambdaInstance lambdaInstance)

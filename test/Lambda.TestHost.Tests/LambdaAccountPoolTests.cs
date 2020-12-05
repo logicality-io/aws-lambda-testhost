@@ -13,8 +13,8 @@ namespace Logicality.AWS.Lambda.TestHost
             var lambdaFunctionInfos = new Dictionary<string, LambdaFunctionInfo>();
             var lambdaFunctionInfo = new LambdaFunctionInfo(
                 "test",
-                typeof(ReverseString),
-                nameof(ReverseString.Reverse));
+                typeof(ReverseStringFunction),
+                nameof(ReverseStringFunction.Reverse));
             lambdaFunctionInfos.Add(lambdaFunctionInfo.Name, lambdaFunctionInfo);
             var lambdaAccountPool = new LambdaAccountPool(1000, lambdaFunctionInfos);
 
@@ -29,8 +29,8 @@ namespace Logicality.AWS.Lambda.TestHost
             var lambdaFunctionInfos = new Dictionary<string, LambdaFunctionInfo>();
             var lambdaFunctionInfo = new LambdaFunctionInfo(
                 "test",
-                typeof(ReverseString),
-                nameof(ReverseString.Reverse),
+                typeof(ReverseStringFunction),
+                nameof(ReverseStringFunction.Reverse),
                 1);
             lambdaFunctionInfos.Add(lambdaFunctionInfo.Name, lambdaFunctionInfo);
             var lambdaAccountPool = new LambdaAccountPool(1000, lambdaFunctionInfos);
@@ -48,8 +48,8 @@ namespace Logicality.AWS.Lambda.TestHost
             var lambdaFunctionInfos = new Dictionary<string, LambdaFunctionInfo>();
             var lambdaFunctionInfo = new LambdaFunctionInfo(
                 "test",
-                typeof(ReverseString),
-                nameof(ReverseString.Reverse));
+                typeof(ReverseStringFunction),
+                nameof(ReverseStringFunction.Reverse));
             lambdaFunctionInfos.Add(lambdaFunctionInfo.Name, lambdaFunctionInfo);
             var lambdaAccountPool = new LambdaAccountPool(1, lambdaFunctionInfos);
             var lambdaInstance1 = lambdaAccountPool.Get("test");
@@ -66,8 +66,8 @@ namespace Logicality.AWS.Lambda.TestHost
             var lambdaFunctionInfos = new Dictionary<string, LambdaFunctionInfo>();
             var lambdaFunctionInfo = new LambdaFunctionInfo(
                 "test",
-                typeof(ReverseString),
-                nameof(ReverseString.Reverse));
+                typeof(ReverseStringFunction),
+                nameof(ReverseStringFunction.Reverse));
             lambdaFunctionInfos.Add(lambdaFunctionInfo.Name, lambdaFunctionInfo);
             var lambdaAccountPool = new LambdaAccountPool(1, lambdaFunctionInfos);
             var lambdaInstance1 = lambdaAccountPool.Get("test");
@@ -77,6 +77,17 @@ namespace Logicality.AWS.Lambda.TestHost
             var lambdaInstance2 = lambdaAccountPool.Get("test");
 
             lambdaInstance2.ShouldBe(lambdaInstance1);
+        }
+
+        [Fact]
+        public void If_function_does_not_exist_then_should_return_null()
+        {
+            var lambdaFunctionInfos = new Dictionary<string, LambdaFunctionInfo>();
+            var lambdaAccountPool = new LambdaAccountPool(1, lambdaFunctionInfos);
+
+            var lambdaInstance = lambdaAccountPool.Get("test");
+
+            lambdaInstance.ShouldBeNull();
         }
     }
 }

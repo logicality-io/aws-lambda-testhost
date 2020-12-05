@@ -2,7 +2,8 @@
 <Project>
   <PropertyGroup>
     <Authors>Damian Hickey, Logicality B.V.</Authors>
-    <Org>Logicality</Org>
+    <Company>Logicality</Company>
+    <ComponentBase>$(Company).AWS</ComponentBase>
     <DebugType>full</DebugType>
     <Nullable>enable</Nullable>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>

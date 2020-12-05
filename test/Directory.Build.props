@@ -5,6 +5,7 @@
     <DebugType>full</DebugType>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
-    <Org>Logicality</Org>
+    <Company>Logicality</Company>
+    <ComponentBase>$(Company).AWS</ComponentBase>
   </PropertyGroup>
 </Project>

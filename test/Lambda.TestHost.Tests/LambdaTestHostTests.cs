@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Amazon.Lambda;
 using Amazon.Lambda.APIGatewayEvents;
 using Amazon.Lambda.Core;
+using Amazon.Lambda.Model;
 using Amazon.Runtime;
 using Logicality.AWS.Lambda.TestHost.Functions;
 using Shouldly;
@@ -24,7 +25,7 @@ namespace Logicality.AWS.Lambda.TestHost
         }
 
         [Fact]
-        public async Task Can_invoke_lambda_function()
+        public async Task Can_invoke_api_gateway_lambda_function()
         {
             var request = new APIGatewayProxyRequest
             {
@@ -37,19 +38,38 @@ namespace Logicality.AWS.Lambda.TestHost
                     Path = "/foo/bar"
                 }
             };
-            var invokeResponse = await _lambdaClient.InvokeRequestAsync("AWSServerless1", request);
+            var invokeResponse = await _lambdaClient.InvokeRequestAsync("APIGatewayFunction", request);
 
             invokeResponse.StatusCode.ShouldBe(200);
             invokeResponse.Payload.Length.ShouldBeGreaterThan(0);
 
             var streamReader = new StreamReader(invokeResponse.Payload);
-            var payloadJson = await streamReader.ReadToEndAsync();
+            var payload = await streamReader.ReadToEndAsync();
 
-            var apiGatewayProxyResponse = JsonSerializer.Deserialize<APIGatewayProxyResponse>(payloadJson);
+            var apiGatewayProxyResponse = JsonSerializer.Deserialize<APIGatewayProxyResponse>(payload);
             apiGatewayProxyResponse.IsBase64Encoded.ShouldBeFalse();
             apiGatewayProxyResponse.Body.ShouldNotBeNullOrWhiteSpace();
+        }
 
-            //_outputHelper.WriteLine(invokeResponse.LogResult);
+
+        [Fact]
+        public async Task Can_invoke_simple_lambda_function()
+        {
+            var invokeRequest = new InvokeRequest
+            {
+                InvocationType = InvocationType.RequestResponse,
+                Payload = "\"string\"",
+                FunctionName = "ReverseStringFunction",
+            };
+            var invokeResponse = await _lambdaClient.InvokeAsync(invokeRequest);
+
+            invokeResponse.StatusCode.ShouldBe(200);
+            invokeResponse.Payload.Length.ShouldBeGreaterThan(0);
+
+            var streamReader = new StreamReader(invokeResponse.Payload);
+            var payload = await streamReader.ReadToEndAsync();
+
+            payload.ShouldBe("\"gnirts\"");
         }
 
         public async Task InitializeAsync()
@@ -60,9 +80,16 @@ namespace Logicality.AWS.Lambda.TestHost
             });
             settings.AddFunction(
                 new LambdaFunctionInfo(
-                    "AWSServerless1",
-                    typeof(ReverseString),
-                    nameof(ReverseString.Reverse)));
+                    "ReverseStringFunction",
+                    typeof(ReverseStringFunction),
+                    nameof(ReverseStringFunction.Reverse)));
+
+            settings.AddFunction(
+                new LambdaFunctionInfo(
+                    "APIGatewayFunction",
+                    typeof(APIGatewayFunction),
+                    nameof(APIGatewayFunction.Handle)));
+
             _testHost = await LambdaTestHost.Start(settings);
 
             var awsCredentials = new BasicAWSCredentials("not", "used");

@@ -8,16 +8,16 @@ namespace Amazon.Lambda
     public static class LambdaClientExtensions
     {
         /// <summary>
-        /// Serializes a request object and invokes it against the supplied function name.
+        /// Serializes a payloadObject object and invokes it against the supplied function name.
         /// </summary>
-        /// <typeparam name="T">The request object </typeparam>
+        /// <typeparam name="T">The payloadObject object </typeparam>
         /// <param name="client"></param>
         /// <param name="functionName"></param>
-        /// <param name="request"></param>
+        /// <param name="payloadObject"></param>
         /// <returns></returns>
-        public static Task<InvokeResponse> InvokeRequestAsync<T>(this IAmazonLambda client, string functionName, T request)
+        public static Task<InvokeResponse> InvokeRequestAsync<T>(this IAmazonLambda client, string functionName, T payloadObject)
         {
-            var payload = JsonSerializer.Serialize(request);
+            var payload = JsonSerializer.Serialize(payloadObject);
             var invokeRequest = new InvokeRequest
             {
                 FunctionName = functionName,
