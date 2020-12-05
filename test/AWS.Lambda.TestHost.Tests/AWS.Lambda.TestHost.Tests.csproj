@@ -8,6 +8,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Amazon.Lambda.Core" Version="1.2.0" />
+    <PackageReference Include="Amazon.Lambda.Serialization.SystemTextJson" Version="2.1.0" />
     <PackageReference Include="Amazon.Lambda.APIGatewayEvents" Version="2.3.0" />
     <PackageReference Include="AWSSDK.Lambda" Version="3.5.3.1" />
     <PackageReference Include="MartinCostello.Logging.XUnit" Version="0.1.0" />
@@ -24,7 +26,6 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\AWS.Lambda.ClientExtensions\AWS.Lambda.ClientExtensions.csproj" />
     <ProjectReference Include="..\..\src\AWS.Lambda.TestHost\AWS.Lambda.TestHost.csproj" />
-    <ProjectReference Include="..\LambdaFunctions\AWSServerless1\AWSServerless1.csproj" />
   </ItemGroup>
 
 </Project>

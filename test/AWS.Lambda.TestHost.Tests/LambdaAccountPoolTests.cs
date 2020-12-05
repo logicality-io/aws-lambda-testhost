@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using Logicality.AWS.Lambda.TestHost.Functions;
 using Shouldly;
 using Xunit;
 
@@ -12,8 +13,8 @@ namespace Logicality.AWS.Lambda.TestHost
             var lambdaFunctionInfos = new Dictionary<string, LambdaFunctionInfo>();
             var lambdaFunctionInfo = new LambdaFunctionInfo(
                 "test",
-                typeof(AWSServerless1.Function),
-                nameof(AWSServerless1.Function.Get));
+                typeof(ReverseString),
+                nameof(ReverseString.Reverse));
             lambdaFunctionInfos.Add(lambdaFunctionInfo.Name, lambdaFunctionInfo);
             var lambdaAccountPool = new LambdaAccountPool(1000, lambdaFunctionInfos);
 
@@ -28,8 +29,8 @@ namespace Logicality.AWS.Lambda.TestHost
             var lambdaFunctionInfos = new Dictionary<string, LambdaFunctionInfo>();
             var lambdaFunctionInfo = new LambdaFunctionInfo(
                 "test",
-                typeof(AWSServerless1.Function),
-                nameof(AWSServerless1.Function.Get),
+                typeof(ReverseString),
+                nameof(ReverseString.Reverse),
                 1);
             lambdaFunctionInfos.Add(lambdaFunctionInfo.Name, lambdaFunctionInfo);
             var lambdaAccountPool = new LambdaAccountPool(1000, lambdaFunctionInfos);
@@ -47,8 +48,8 @@ namespace Logicality.AWS.Lambda.TestHost
             var lambdaFunctionInfos = new Dictionary<string, LambdaFunctionInfo>();
             var lambdaFunctionInfo = new LambdaFunctionInfo(
                 "test",
-                typeof(AWSServerless1.Function),
-                nameof(AWSServerless1.Function.Get));
+                typeof(ReverseString),
+                nameof(ReverseString.Reverse));
             lambdaFunctionInfos.Add(lambdaFunctionInfo.Name, lambdaFunctionInfo);
             var lambdaAccountPool = new LambdaAccountPool(1, lambdaFunctionInfos);
             var lambdaInstance1 = lambdaAccountPool.Get("test");
@@ -65,8 +66,8 @@ namespace Logicality.AWS.Lambda.TestHost
             var lambdaFunctionInfos = new Dictionary<string, LambdaFunctionInfo>();
             var lambdaFunctionInfo = new LambdaFunctionInfo(
                 "test",
-                typeof(AWSServerless1.Function),
-                nameof(AWSServerless1.Function.Get));
+                typeof(ReverseString),
+                nameof(ReverseString.Reverse));
             lambdaFunctionInfos.Add(lambdaFunctionInfo.Name, lambdaFunctionInfo);
             var lambdaAccountPool = new LambdaAccountPool(1, lambdaFunctionInfos);
             var lambdaInstance1 = lambdaAccountPool.Get("test");

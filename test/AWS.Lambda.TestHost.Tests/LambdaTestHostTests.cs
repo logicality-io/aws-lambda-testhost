@@ -5,6 +5,7 @@ using Amazon.Lambda;
 using Amazon.Lambda.APIGatewayEvents;
 using Amazon.Lambda.Core;
 using Amazon.Runtime;
+using Logicality.AWS.Lambda.TestHost.Functions;
 using Shouldly;
 using Xunit;
 using Xunit.Abstractions;
@@ -60,8 +61,8 @@ namespace Logicality.AWS.Lambda.TestHost
             settings.AddFunction(
                 new LambdaFunctionInfo(
                     "AWSServerless1",
-                    typeof(AWSServerless1.Function),
-                    nameof(AWSServerless1.Function.Get)));
+                    typeof(ReverseString),
+                    nameof(ReverseString.Reverse)));
             _testHost = await LambdaTestHost.Start(settings);
 
             var awsCredentials = new BasicAWSCredentials("not", "used");

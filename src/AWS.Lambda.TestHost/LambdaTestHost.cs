@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using Amazon.Lambda.Core;
+using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -13,13 +14,27 @@ using Microsoft.Extensions.Logging;
 
 namespace Logicality.AWS.Lambda.TestHost
 {
+    /// <summary>
+    /// 
+    /// </summary>
     public class LambdaTestHost: IAsyncDisposable
     {
         private readonly IWebHost _webHost;
 
-        private LambdaTestHost(LambdaTestHostSettings settings)
+        private LambdaTestHost(IWebHost host, Uri serviceUrl)
         {
-            _webHost = Microsoft.AspNetCore.WebHost
+            _webHost = host;
+            ServiceUrl = serviceUrl;
+        }
+
+        /// <summary>
+        /// The URL that the LambdaTestHost will handle invocation requests.
+        /// </summary>
+        public Uri ServiceUrl { get; }
+
+        public static async ValueTask<LambdaTestHost> Start(LambdaTestHostSettings settings)
+        {
+            var host = WebHost
                 .CreateDefaultBuilder<Startup>(Array.Empty<string>())
                 .UseUrls(settings.WebHostUrl)
                 .ConfigureServices(services =>
@@ -27,19 +42,12 @@ namespace Logicality.AWS.Lambda.TestHost
                     services.AddSingleton(settings);
                 })
                 .Build();
-        }
 
-        /// <summary>
-        /// The URL that the LambdaTestHost is handling request.
-        /// </summary>
-        public Uri ServiceUrl { get; private set; }
+            await host.StartAsync();
 
-        public static async ValueTask<LambdaTestHost> Start(LambdaTestHostSettings settings)
-        {
-            var host = new LambdaTestHost(settings);
-            await host._webHost.StartAsync();
-            host.ServiceUrl = host._webHost.GetUris().Single();
-            return host;
+            var serviceUrl = host.GetUris().Single();
+
+            return new LambdaTestHost(host, serviceUrl);
         }
 
         private class Startup
@@ -69,54 +77,56 @@ namespace Logicality.AWS.Lambda.TestHost
 
                     functions.UseEndpoints(endpoints =>
                     {
-                        endpoints.MapPost("/{functionName}/invocations", async ctx =>
-                        {
-                            var logger = ctx.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger<LambdaTestHost>();
-                            var functionName = (string)ctx.Request.RouteValues["functionName"];
-                            if (!_settings.Functions.TryGetValue(functionName, out var lambdaFunction))
-                            {
-                                ctx.Response.StatusCode = 404;
-                                return;
-                            }
-
-                            try
-                            {
-                                var streamReader = new StreamReader(ctx.Request.Body, Encoding.UTF8);
-                                var payload = await streamReader.ReadToEndAsync();
-
-                                var lambdaInstance = _lambdaAccountPool.Get(functionName);
-                                if (lambdaInstance == null)
-                                {
-                                    ctx.Response.StatusCode = 429;
-                                }
-
-                                var settings = ctx.RequestServices.GetRequiredService<LambdaTestHostSettings>();
-
-                                var context = settings.CreateContext();
-
-                                var parameters = BuildParameters(lambdaFunction, context, payload);
-
-                                var lambdaReturnObject = lambdaFunction.HandlerMethod.Invoke(lambdaInstance.FunctionInstance, parameters);
-                                var responseBody = await ProcessReturnAsync(lambdaFunction, lambdaReturnObject);
-
-                                ctx.Response.StatusCode = 200;
-                                await ctx.Response.WriteAsync(responseBody);
-
-                                _lambdaAccountPool.Return(lambdaInstance);
-                            }
-                            catch (TargetInvocationException ex)
-                            {
-                                logger.LogError(ex.InnerException, "Error invoking function");
-                                ctx.Response.StatusCode = 500;
-                            }
-                            catch(Exception ex)
-                            {
-                                logger.LogError(ex.InnerException, "Error invoking function");
-                                ctx.Response.StatusCode = 500;
-                            }
-                        });
+                        endpoints.MapPost("/{functionName}/invocations", HandleInvocation);
                     });
                 });
+            }
+
+            private async Task HandleInvocation(HttpContext ctx)
+            {
+                var logger = ctx.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger<LambdaTestHost>();
+                var functionName = (string) ctx.Request.RouteValues["functionName"];
+                if (!_settings.Functions.TryGetValue(functionName, out var lambdaFunction))
+                {
+                    ctx.Response.StatusCode = 404;
+                    return;
+                }
+
+                try
+                {
+                    var streamReader = new StreamReader(ctx.Request.Body, Encoding.UTF8);
+                    var payload = await streamReader.ReadToEndAsync();
+
+                    var lambdaInstance = _lambdaAccountPool.Get(functionName);
+                    if (lambdaInstance == null)
+                    {
+                        ctx.Response.StatusCode = 429;
+                    }
+
+                    var settings = ctx.RequestServices.GetRequiredService<LambdaTestHostSettings>();
+
+                    var context = settings.CreateContext();
+
+                    var parameters = BuildParameters(lambdaFunction, context, payload);
+
+                    var lambdaReturnObject = lambdaFunction.HandlerMethod.Invoke(lambdaInstance!.FunctionInstance, parameters);
+                    var responseBody = await ProcessReturnAsync(lambdaFunction, lambdaReturnObject);
+
+                    ctx.Response.StatusCode = 200;
+                    await ctx.Response.WriteAsync(responseBody);
+
+                    _lambdaAccountPool.Return(lambdaInstance);
+                }
+                catch (TargetInvocationException ex)
+                {
+                    logger.LogError(ex.InnerException, "Error invoking function");
+                    ctx.Response.StatusCode = 500;
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex.InnerException, "Error invoking function");
+                    ctx.Response.StatusCode = 500;
+                }
             }
 
             /// Adapted from Amazon.Lambda.TestTools
@@ -144,14 +154,11 @@ namespace Logicality.AWS.Lambda.TestHost
                                 .GetMethods(BindingFlags.Public | BindingFlags.Instance)
                                 .FirstOrDefault(x => string.Equals(x.Name, "Deserialize"));
 
-                            var methodInfo = genericMethodInfo.MakeGenericMethod(new[]
-                            {
-                                parameters[i].ParameterType
-                            });
+                            var methodInfo = genericMethodInfo?.MakeGenericMethod(parameters[i].ParameterType);
 
                             try
                             {
-                                parameterValues[i] = methodInfo.Invoke(functionInfo.Serializer, new object[] { stream });
+                                parameterValues[i] = methodInfo!.Invoke(functionInfo.Serializer, new object[] { stream })!;
                             }
                             catch (Exception e)
                             {
@@ -168,6 +175,7 @@ namespace Logicality.AWS.Lambda.TestHost
                 return parameterValues;
             }
 
+            /// Adapted from Amazon.Lambda.TestTools
             private static async Task<string?> ProcessReturnAsync(LambdaFunctionInfo functionInfo, object? lambdaReturnObject)
             {
                 Stream? lambdaReturnStream = null;
