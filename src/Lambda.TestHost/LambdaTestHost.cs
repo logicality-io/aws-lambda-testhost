@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Amazon.Lambda.Core;
 using Microsoft.AspNetCore;
@@ -101,6 +102,7 @@ namespace Logicality.AWS.Lambda.TestHost
                     if (lambdaInstance == null)
                     {
                         ctx.Response.StatusCode = 429;
+                        return;
                     }
 
                     var settings = ctx.RequestServices.GetRequiredService<LambdaTestHostSettings>();
@@ -109,6 +111,7 @@ namespace Logicality.AWS.Lambda.TestHost
 
                     var parameters = BuildParameters(lambdaFunction, context, payload);
 
+                    _settings.PreInvocation.Set();
                     var lambdaReturnObject = lambdaFunction.HandlerMethod.Invoke(lambdaInstance!.FunctionInstance, parameters);
                     var responseBody = await ProcessReturnAsync(lambdaFunction, lambdaReturnObject);
 

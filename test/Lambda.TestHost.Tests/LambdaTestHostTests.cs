@@ -20,6 +20,7 @@ namespace Logicality.AWS.Lambda.TestHost
         private readonly ITestOutputHelper _outputHelper;
         private LambdaTestHost _testHost;
         private AmazonLambdaClient _lambdaClient;
+        private LambdaTestHostSettings _settings;
 
         public LambdaTestHostTests(ITestOutputHelper outputHelper)
         {
@@ -75,7 +76,7 @@ namespace Logicality.AWS.Lambda.TestHost
         }
 
         [Fact]
-        public async Task When_funcion_does_not_exists_then_should_get_404()
+        public async Task When_function_does_not_exists_then_should_get_404()
         {
             var invokeRequest = new InvokeRequest
             {
@@ -84,32 +85,66 @@ namespace Logicality.AWS.Lambda.TestHost
                 FunctionName = "UnknownFunction",
             };
 
-            Func<Task> act = async () => await _lambdaClient.InvokeAsync(invokeRequest);
+            Func<Task> act = () => _lambdaClient.InvokeAsync(invokeRequest);
 
             var exception = await act.ShouldThrowAsync<AmazonLambdaException>();
 
             exception.StatusCode.ShouldBe(HttpStatusCode.NotFound);
         }
 
+        [Fact]
+        public async Task When_exceed_reserved_concurrency_then_should_get_429()
+        {
+            var invokeRequest1 = new InvokeRequest
+            {
+                InvocationType = InvocationType.RequestResponse,
+                Payload = "5000",
+                FunctionName = "SleepFunction",
+            };
+            var operation1 = _lambdaClient.InvokeAsync(invokeRequest1);
+
+            _settings.PreInvocation.WaitOne(TimeSpan.FromSeconds(1));
+
+            var invokeRequest2 = new InvokeRequest
+            {
+                InvocationType = InvocationType.RequestResponse,
+                Payload = "0",
+                FunctionName = "SleepFunction",
+            };
+            Func<Task> act = () => _lambdaClient.InvokeAsync(invokeRequest2);
+
+            var exception = await act.ShouldThrowAsync<AmazonLambdaException>();
+
+            exception.StatusCode.ShouldBe(HttpStatusCode.TooManyRequests);
+        }
+
         public async Task InitializeAsync()
         { 
-            var settings = new LambdaTestHostSettings(() => new TestLambdaContext
+            _settings = new LambdaTestHostSettings(() => new TestLambdaContext
             {
                 Logger = new XunitLambdaLogger(_outputHelper)
             });
-            settings.AddFunction(
-                new LambdaFunctionInfo(
-                    "ReverseStringFunction",
-                    typeof(ReverseStringFunction),
-                    nameof(ReverseStringFunction.Reverse)));
-
-            settings.AddFunction(
+            
+            _settings.AddFunction(
                 new LambdaFunctionInfo(
                     "APIGatewayFunction",
                     typeof(APIGatewayFunction),
                     nameof(APIGatewayFunction.Handle)));
 
-            _testHost = await LambdaTestHost.Start(settings);
+            _settings.AddFunction(
+                new LambdaFunctionInfo(
+                    "ReverseStringFunction",
+                    typeof(ReverseStringFunction),
+                    nameof(ReverseStringFunction.Reverse)));
+
+            _settings.AddFunction(
+                new LambdaFunctionInfo(
+                    "SleepFunction",
+                    typeof(SleepFunction),
+                    nameof(SleepFunction.Handle),
+                    1));
+
+            _testHost = await LambdaTestHost.Start(_settings);
 
             var awsCredentials = new BasicAWSCredentials("not", "used");
             var lambdaConfig = new AmazonLambdaConfig

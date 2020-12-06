@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
 using Amazon.Lambda.Core;
 
 namespace Logicality.AWS.Lambda.TestHost
@@ -28,6 +29,9 @@ namespace Logicality.AWS.Lambda.TestHost
         internal Func<ILambdaContext> CreateContext { get; }
 
         internal IReadOnlyDictionary<string, LambdaFunctionInfo> Functions => _functions;
+
+            //Used in tests to signal the start of an invocation.
+        internal AutoResetEvent InvocationOnStart => new AutoResetEvent(false);
 
         public void AddFunction(LambdaFunctionInfo lambdaFunctionInfo)
         {
