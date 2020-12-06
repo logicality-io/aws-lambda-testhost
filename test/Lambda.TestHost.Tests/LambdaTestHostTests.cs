@@ -1,4 +1,6 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
+using System.Net;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Amazon.Lambda;
@@ -70,6 +72,23 @@ namespace Logicality.AWS.Lambda.TestHost
             var payload = await streamReader.ReadToEndAsync();
 
             payload.ShouldBe("\"gnirts\"");
+        }
+
+        [Fact]
+        public async Task When_funcion_does_not_exists_then_should_get_404()
+        {
+            var invokeRequest = new InvokeRequest
+            {
+                InvocationType = InvocationType.RequestResponse,
+                Payload = "\"string\"",
+                FunctionName = "UnknownFunction",
+            };
+
+            Func<Task> act = async () => await _lambdaClient.InvokeAsync(invokeRequest);
+
+            var exception = await act.ShouldThrowAsync<AmazonLambdaException>();
+
+            exception.StatusCode.ShouldBe(HttpStatusCode.NotFound);
         }
 
         public async Task InitializeAsync()
