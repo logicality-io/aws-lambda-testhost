@@ -8,7 +8,6 @@ namespace Logicality.AWS.Lambda.TestHost
         {
             LambdaFunction = lambdaFunction;
             FunctionInstance = Activator.CreateInstance(lambdaFunction.Type)!;
-            Created = DateTime.Now;
             InstanceId = Guid.NewGuid();
         }
 
@@ -17,7 +16,5 @@ namespace Logicality.AWS.Lambda.TestHost
         public LambdaFunctionInfo LambdaFunction { get; }
 
         public object FunctionInstance { get; }
-
-        public DateTime Created { get; }
     }
 }
