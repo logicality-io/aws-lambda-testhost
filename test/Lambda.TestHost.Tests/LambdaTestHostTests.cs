@@ -1,4 +1,5 @@
 ﻿using System;
+using System.DirectoryServices.ActiveDirectory;
 using System.IO;
 using System.Net;
 using System.Text.Json;
@@ -103,7 +104,7 @@ namespace Logicality.AWS.Lambda.TestHost
             };
             var operation1 = _lambdaClient.InvokeAsync(invokeRequest1);
 
-            _settings.PreInvocation.WaitOne(TimeSpan.FromSeconds(1));
+            _settings.InvocationOnStart.WaitOne(TimeSpan.FromSeconds(1));
 
             var invokeRequest2 = new InvokeRequest
             {
@@ -118,28 +119,50 @@ namespace Logicality.AWS.Lambda.TestHost
             exception.StatusCode.ShouldBe(HttpStatusCode.TooManyRequests);
         }
 
+        [Fact]
+        public async Task When_function_throws_then_should_get_500()
+        {
+            var invokeRequest1 = new InvokeRequest
+            {
+                InvocationType = InvocationType.RequestResponse,
+                Payload = "1",
+                FunctionName = nameof(BrokenFunction),
+            };
+            Func<Task> act = () => _lambdaClient.InvokeAsync(invokeRequest1);
+
+            var exception = await act.ShouldThrowAsync<AmazonLambdaException>();
+
+            exception.StatusCode.ShouldBe(HttpStatusCode.InternalServerError);
+        }
+
         public async Task InitializeAsync()
         { 
             _settings = new LambdaTestHostSettings(() => new TestLambdaContext
             {
                 Logger = new XunitLambdaLogger(_outputHelper)
             });
-            
+
             _settings.AddFunction(
                 new LambdaFunctionInfo(
-                    "APIGatewayFunction",
+                    nameof(BrokenFunction),
+                    typeof(BrokenFunction),
+                    nameof(BrokenFunction.Handle)));
+
+            _settings.AddFunction(
+                new LambdaFunctionInfo(
+                    nameof(APIGatewayFunction),
                     typeof(APIGatewayFunction),
                     nameof(APIGatewayFunction.Handle)));
 
             _settings.AddFunction(
                 new LambdaFunctionInfo(
-                    "ReverseStringFunction",
+                    nameof(ReverseStringFunction),
                     typeof(ReverseStringFunction),
                     nameof(ReverseStringFunction.Reverse)));
 
             _settings.AddFunction(
                 new LambdaFunctionInfo(
-                    "SleepFunction",
+                    nameof(SleepFunction),
                     typeof(SleepFunction),
                     nameof(SleepFunction.Handle),
                     1));

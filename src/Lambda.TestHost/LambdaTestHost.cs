@@ -111,7 +111,7 @@ namespace Logicality.AWS.Lambda.TestHost
 
                     var parameters = BuildParameters(lambdaFunction, context, payload);
 
-                    _settings.PreInvocation.Set();
+                    _settings.InvocationOnStart.Set();
                     var lambdaReturnObject = lambdaFunction.HandlerMethod.Invoke(lambdaInstance!.FunctionInstance, parameters);
                     var responseBody = await ProcessReturnAsync(lambdaFunction, lambdaReturnObject);
 
