@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Amazon.Runtime;
 using Amazon.StepFunctions;
@@ -8,24 +9,27 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Serilog;
 using Serilog.Events;
-using HostBuilder = Microsoft.Extensions.Hosting.HostBuilder;
 
-namespace LocalStackIntegration
+namespace StepFunctionsLocal
 {
-    public class Program
+    class Program
     {
-        private static async Task Main(string[] args)
+        static async Task Main(string[] args)
         {
-            var host = CreateHostBuilder(args).Build();
+            var (hostBuilder, context) = CreateHostBuilder(args);
+            var host = hostBuilder.Build();
             await host.StartAsync();
 
+            // 1. Create the StepFunctions Client
             var credentials = new BasicAWSCredentials("not", "used");
             var config = new AmazonStepFunctionsConfig
             {
-                ServiceURL = "http://localhost:8083"
+                ServiceURL = context.StepFunctions.ServiceUrl.ToString()
             };
             var client = new AmazonStepFunctionsClient(credentials, config);
 
+            // 2. Create step machine with a single task the invokes a lambda function
+            // The FUnctionName contains the lambda to be invoked.
             var request = new CreateStateMachineRequest
             {
                 Name = "Foo",
@@ -38,9 +42,9 @@ namespace LocalStackIntegration
       ""Type"": ""Task"",
       ""Resource"": ""arn:aws:states:::lambda:invoke"",
       ""Parameters"": {
-        ""FunctionName"": ""arn:aws:lambda:us-east-1:123456789012:function:simple:$LATEST"",
+        ""FunctionName"": ""arn:aws:lambda:us-east-1:123456789012:function:SimpleLambdaFunction:$LATEST"",
         ""Payload"": {
-          ""Input.$"": ""$.Comment""
+          ""Input.$"": ""$.Payload""
         }
       },
       ""End"": true
@@ -51,12 +55,15 @@ namespace LocalStackIntegration
 
             var createStateMachineResponse = await client.CreateStateMachineAsync(request);
 
+            // 3. Create a StepFunction execution.
             var startExecutionRequest = new StartExecutionRequest
             {
                 Name = Guid.NewGuid().ToString(),
                 StateMachineArn = createStateMachineResponse.StateMachineArn,
                 Input = @"{
-    ""Comment"": ""Insert your JSON here""
+""Payload"": { 
+  ""Foo"": ""Bar"" 
+  }
 }"
             };
             var startExecutionResponse = await client.StartExecutionAsync(startExecutionRequest);
@@ -66,12 +73,35 @@ namespace LocalStackIntegration
                 ExecutionArn = startExecutionResponse.ExecutionArn,
                 IncludeExecutionData = true,
             };
-            var getExecutionHistoryResponse = await client.GetExecutionHistoryAsync(getExecutionHistoryRequest);
+
+
+            while (true) //HACK a bit nasty, improvements welcome.
+            {
+                await Task.Delay(250);
+                
+                var getExecutionHistoryResponse = await client.GetExecutionHistoryAsync(getExecutionHistoryRequest);
+
+                var historyEvent = getExecutionHistoryResponse.Events.Last();
+
+                if (historyEvent.ExecutionSucceededEventDetails != null)
+                {
+                    Console.WriteLine("Execution succeeded");
+                    Console.WriteLine(historyEvent.ExecutionSucceededEventDetails.Output);
+                    break;
+                }
+
+                if (historyEvent.ExecutionFailedEventDetails != null)
+                {
+                    Console.WriteLine("Execution failed");
+                    Console.WriteLine(historyEvent.ExecutionFailedEventDetails.Cause);
+                    break;
+                }
+            }
 
             await host.WaitForShutdownAsync();
         }
 
-        private static IHostBuilder CreateHostBuilder(string[] args)
+        private static (IHostBuilder, HostedServiceContext) CreateHostBuilder(string[] args)
         {
             var loggerConfiguration = new LoggerConfiguration()
                 .MinimumLevel.Debug()
@@ -86,19 +116,20 @@ namespace LocalStackIntegration
 
             var context = new HostedServiceContext();
 
-            return new HostBuilder()
+            var hostBuilder =  new HostBuilder()
                 .UseConsoleLifetime()
                 .ConfigureServices(services =>
                 {
                     services.AddSingleton(context);
-                    services.AddTransient<LocalStackHostedService>();
 
                     services
                         .AddSequentialHostedServices("root", r => r
                             .Host<LambdaTestHostHostedService>()
-                            .Host<LocalStackHostedService>());
+                            .Host<StepFunctionsHostedService>());
                 })
                 .UseSerilog(logger);
+
+            return (hostBuilder, context);
         }
     }
 }

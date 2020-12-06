@@ -136,10 +136,10 @@ namespace Logicality.AWS.Lambda.TestHost
         }
 
         public async Task InitializeAsync()
-        { 
+        {
             _settings = new LambdaTestHostSettings(() => new TestLambdaContext
             {
-                Logger = new XunitLambdaLogger(_outputHelper)
+                Logger = new XunitLambdaLogger(_outputHelper),
             });
 
             _settings.AddFunction(

@@ -3,7 +3,6 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using Amazon.Lambda.Core;
 using Microsoft.AspNetCore;
@@ -122,13 +121,15 @@ namespace Logicality.AWS.Lambda.TestHost
                 }
                 catch (TargetInvocationException ex)
                 {
-                    logger.LogError(ex.InnerException, "Error invoking function");
+                    logger.LogError(ex, "Error invoking function");
                     ctx.Response.StatusCode = 500;
+                    // TODO response body error
                 }
                 catch (Exception ex)
                 {
-                    logger.LogError(ex.InnerException, "Error invoking function");
+                    logger.LogError(ex, "Error invoking function");
                     ctx.Response.StatusCode = 500;
+                    // TODO response body error
                 }
             }
 
@@ -226,6 +227,31 @@ namespace Logicality.AWS.Lambda.TestHost
                 lambdaReturnStream.Position = 0;
                 using var reader = new StreamReader(lambdaReturnStream);
                 return await reader.ReadToEndAsync();
+            }
+
+            public static string GenerateErrorMessage(Exception e)
+            {
+                var sb = new StringBuilder();
+
+                if (e is AggregateException)
+                {
+                    e = e.InnerException;
+                }
+
+                var exceptionDepth = 0;
+                while (e != null)
+                {
+                    if (sb.Length > 0)
+                        sb.AppendLine($"---------------- Inner {exceptionDepth} Exception ------------");
+
+                    sb.AppendLine($"{e.GetType().FullName}: {e.Message}");
+                    sb.AppendLine(e.StackTrace);
+
+                    e = e.InnerException;
+                    exceptionDepth++;
+                }
+
+                return sb.ToString();
             }
         }
 

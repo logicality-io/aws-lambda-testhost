@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using Logicality.AWS.Lambda.TestHost;
 using Microsoft.Extensions.Hosting;
 
-namespace LocalStackIntegration
+namespace StepFunctionsLocal
 {
     public class LambdaTestHostHostedService : IHostedService
     {

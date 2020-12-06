@@ -41,8 +41,7 @@ namespace LocalStackIntegration
                 .UseImage("localstack/localstack:latest")
                 .WithEnvironment(
                     "SERVICES=sqs,lambda",
-                    $"LAMBDA_FALLBACK_URL={_context.LambdaTestHost.ServiceUrl}",
-                    "LOCALSTACK_API_KEY=45svCDcHrN")
+                    $"LAMBDA_FALLBACK_URL={_context.LambdaTestHost.ServiceUrl}")
                 //.UseNetwork("host")
                 .ReuseIfExists()
                 .ExposePort(Port, ContainerPort)

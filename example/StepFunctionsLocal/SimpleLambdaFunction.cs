@@ -1,7 +1,7 @@
 ﻿using Amazon.Lambda.Core;
 using Amazon.Lambda.Serialization.SystemTextJson;
 
-namespace LocalStackIntegration
+namespace StepFunctionsLocal
 {
     public class SimpleLambdaFunction
     {
