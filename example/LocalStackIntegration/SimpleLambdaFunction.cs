@@ -1,27 +1,16 @@
-﻿using Amazon.Lambda.Core;
+﻿using System.Threading.Tasks;
+using Amazon.Lambda.Core;
 using Amazon.Lambda.Serialization.SystemTextJson;
+using Amazon.Lambda.SQSEvents;
 
 namespace LocalStackIntegration
 {
     public class SimpleLambdaFunction
     {
         [LambdaSerializer(typeof(DefaultLambdaJsonSerializer))]
-        public SimpleResponse FunctionHandler(SimpleRequest request, ILambdaContext lambdaContext)
+        public Task FunctionHandler(SQSEvent request, ILambdaContext lambdaContext)
         {
-            return new SimpleResponse
-            {
-                Foo = request.Foo
-            };
-        }
-
-        public class SimpleRequest
-        {
-            public string Foo { get; set; }
-        }
-
-        public class SimpleResponse
-        {
-            public string Foo { get; set; }
+            return Task.CompletedTask;
         }
     }
 }

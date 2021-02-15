@@ -1,9 +1,12 @@
-﻿using System;
+﻿using System.IO;
 using System.Threading.Tasks;
+using Amazon.Lambda;
+using Amazon.Lambda.Model;
 using Amazon.Runtime;
-using Amazon.StepFunctions;
-using Amazon.StepFunctions.Model;
+using Amazon.SQS;
+using Amazon.SQS.Model;
 using Logicality.Extensions.Hosting;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Serilog;
@@ -16,62 +19,52 @@ namespace LocalStackIntegration
     {
         private static async Task Main(string[] args)
         {
-            var host = CreateHostBuilder(args).Build();
+            var (hostBuilder, context) = CreateHostBuilder(args);
+            var host = hostBuilder.Build();
             await host.StartAsync();
 
             var credentials = new BasicAWSCredentials("not", "used");
-            var config = new AmazonStepFunctionsConfig
+            var sqsClient = new AmazonSQSClient(credentials, new AmazonSQSConfig
             {
-                ServiceURL = "http://localhost:8083"
-            };
-            var client = new AmazonStepFunctionsClient(credentials, config);
+                ServiceURL = context.LocalStack.ServiceUrl.ToString()
+            });
+            var lambdaClient = new AmazonLambdaClient(credentials, new AmazonLambdaConfig
+            {
+                ServiceURL = context.LocalStack.ServiceUrl.ToString()
+            });
+            var createQueueRequest = new CreateQueueRequest("test-q");
+            var createQueueResponse = await sqsClient.CreateQueueAsync(createQueueRequest);
 
-            var request = new CreateStateMachineRequest
+            var createFunctionRequest = new CreateFunctionRequest
             {
-                Name = "Foo",
-                Type = StateMachineType.STANDARD,
-                Definition = @"{
-  ""Comment"": ""A Hello World example demonstrating various state types of the Amazon States Language"",
-  ""StartAt"": ""Invoke Lambda function"",
-  ""States"": {
-    ""Invoke Lambda function"": {
-      ""Type"": ""Task"",
-      ""Resource"": ""arn:aws:states:::lambda:invoke"",
-      ""Parameters"": {
-        ""FunctionName"": ""arn:aws:lambda:us-east-1:123456789012:function:simple:$LATEST"",
-        ""Payload"": {
-          ""Input.$"": ""$.Comment""
-        }
-      },
-      ""End"": true
-    }
-  }
-}"
+                FunctionName = nameof(SimpleLambdaFunction),
+                Runtime = "netcoreapp3.1",
+                Handler = nameof(SimpleLambdaFunction.FunctionHandler),
+                Role = "arn:aws:iam::000000000000:role/foo",
+                Code = new FunctionCode()
+                {
+                    S3Bucket = "foo",
+                    S3Key = "bar",
+                },
             };
 
-            var createStateMachineResponse = await client.CreateStateMachineAsync(request);
+            var createFunctionResponse = await lambdaClient.CreateFunctionAsync(createFunctionRequest);
 
-            var startExecutionRequest = new StartExecutionRequest
+            var createEventSourceMappingRequest = new CreateEventSourceMappingRequest
             {
-                Name = Guid.NewGuid().ToString(),
-                StateMachineArn = createStateMachineResponse.StateMachineArn,
-                Input = @"{
-    ""Comment"": ""Insert your JSON here""
-}"
+                EventSourceArn = $"arn:aws:sqs:eus-east-1:000000000000:{createQueueRequest.QueueName}",
+                FunctionName = nameof(SimpleLambdaFunction),
             };
-            var startExecutionResponse = await client.StartExecutionAsync(startExecutionRequest);
+            
+            var createEventSourceMappingResponse = await lambdaClient.CreateEventSourceMappingAsync(createEventSourceMappingRequest);
 
-            var getExecutionHistoryRequest = new GetExecutionHistoryRequest
-            {
-                ExecutionArn = startExecutionResponse.ExecutionArn,
-                IncludeExecutionData = true,
-            };
-            var getExecutionHistoryResponse = await client.GetExecutionHistoryAsync(getExecutionHistoryRequest);
-
+            var sendMessageRequest = new SendMessageRequest(createQueueResponse.QueueUrl, "message");
+            await sqsClient.SendMessageAsync(sendMessageRequest);
+            
             await host.WaitForShutdownAsync();
         }
 
-        private static IHostBuilder CreateHostBuilder(string[] args)
+        private static (IHostBuilder, HostedServiceContext) CreateHostBuilder(string[] args)
         {
             var loggerConfiguration = new LoggerConfiguration()
                 .MinimumLevel.Debug()
@@ -86,8 +79,14 @@ namespace LocalStackIntegration
 
             var context = new HostedServiceContext();
 
-            return new HostBuilder()
+            var hostBuilder = new HostBuilder()
                 .UseConsoleLifetime()
+                .ConfigureAppConfiguration(builder =>
+                {
+                    builder
+                        .AddCommandLine(args)
+                        .AddUserSecrets<Program>();
+                })
                 .ConfigureServices(services =>
                 {
                     services.AddSingleton(context);
@@ -99,6 +98,8 @@ namespace LocalStackIntegration
                             .Host<LocalStackHostedService>());
                 })
                 .UseSerilog(logger);
+
+            return (hostBuilder, context);
         }
     }
 }

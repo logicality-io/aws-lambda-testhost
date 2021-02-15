@@ -172,7 +172,8 @@ namespace Logicality.AWS.Lambda.TestHost
             var awsCredentials = new BasicAWSCredentials("not", "used");
             var lambdaConfig = new AmazonLambdaConfig
             {
-                ServiceURL = _testHost.ServiceUrl.ToString()
+                ServiceURL = _testHost.ServiceUrl.ToString(),
+                MaxErrorRetry = 0
             };
             _lambdaClient = new AmazonLambdaClient(awsCredentials, lambdaConfig);
         }

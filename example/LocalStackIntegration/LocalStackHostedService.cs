@@ -10,21 +10,25 @@ using Amazon.SQS.Model;
 using Ductus.FluentDocker.Builders;
 using Ductus.FluentDocker.Services;
 using Logicality.Extensions.Hosting;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace LocalStackIntegration
 {
     public class LocalStackHostedService : DockerHostedService
     {
+        private readonly IConfiguration _configuration;
         private readonly HostedServiceContext _context;
         public const int Port = 4566;
         private const int ContainerPort = 4566;
 
         public LocalStackHostedService(
+            IConfiguration configuration,
             HostedServiceContext context,
             ILogger<DockerHostedService> logger)
             : base(logger)
         {
+            _configuration = configuration;
             _context = context;
         }
 
@@ -35,19 +39,29 @@ namespace LocalStackIntegration
         public AWSCredentials AWSCredentials { get; private set; }
 
         protected override IContainerService CreateContainerService()
-            => new Builder()
+        {
+            var dockerInternal = new UriBuilder(_context.LambdaTestHost.ServiceUrl)
+            {
+                Host = "host.docker.internal"
+            };
+            var localStackApiKey = _configuration.GetValue<string>("LocalStackApiKey");
+            return new Builder()
                 .UseContainer()
                 .WithName(ContainerName)
                 .UseImage("localstack/localstack:latest")
+                .WithEnvironment("SERVICES=sqs,lambda")
                 .WithEnvironment(
                     "SERVICES=sqs,lambda",
-                    $"LAMBDA_FALLBACK_URL={_context.LambdaTestHost.ServiceUrl}")
+                    $"LOCALSTACK_API_KEY={localStackApiKey}",
+                    "LAMBDA_EXECUTOR=local",
+                    $"LAMBDA_FALLBACK_URL={dockerInternal}")
                 //.UseNetwork("host")
                 .ReuseIfExists()
                 .ExposePort(Port, ContainerPort)
                 .ExposePort(443, 443)
                 .WaitForPort($"{ContainerPort}/tcp", 10000, "127.0.0.1")
                 .Build();
+        }
 
         public override async Task StartAsync(CancellationToken cancellationToken)
         {
