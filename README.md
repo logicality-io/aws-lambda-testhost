@@ -1,6 +1,6 @@
 # AWS Lambda TestHost
 
-A .NET host that can host and execute .NET Lambdas for simulations and debugging
+A .NET host that can host and execute .NET Lambdas for simulation and debugging
 purposes.
 
 ## Packages
@@ -13,7 +13,7 @@ purposes.
 
 It works by running a web server that can handle lambda invocation requests,
 activate the appropriate lambda class, invoking it's handler (dealing with any
-serialization needs) and return responses.
+serialization needs) and returning responses.
 
 Given this simple function:
 
@@ -81,7 +81,7 @@ Linux:
 ```
 
 Builds can be performed on local environment and requires .NET Core 3.1.x and
-.NET 5.0.x.
+.NET 5.0.x SDKs to be installed.
 
 Windows:
 
