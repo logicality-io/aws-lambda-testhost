@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using static Bullseye.Targets;
 using static SimpleExec.Command;
 
@@ -18,11 +19,22 @@ namespace Build
         {
             Target(Clean, () =>
             {
-                if (Directory.Exists(ArtifactsDir))
+                var filesToDelete = Directory
+                    .GetFiles(ArtifactsDir, "*.*", SearchOption.AllDirectories)
+                    .Where(f => !f.EndsWith(".gitignore"));
+                foreach (var file in filesToDelete)
                 {
-                    Directory.Delete(ArtifactsDir, true);
+                    Console.WriteLine($"Deleting file {file}");
+                    File.SetAttributes(file, FileAttributes.Normal);
+                    File.Delete(file);
                 }
-                Directory.CreateDirectory(ArtifactsDir);
+
+                var directoriesToDelete = Directory.GetDirectories(ArtifactsDir);
+                foreach (var directory in directoriesToDelete)
+                {
+                    Console.WriteLine($"Deleting directory {directory}");
+                    Directory.Delete(directory, true);
+                }
             });
 
             Target(Build, () => Run("dotnet", "build AWS.Lambda.TestHost.sln -c Release"));
