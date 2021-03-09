@@ -36,7 +36,9 @@ namespace LocalStackIntegration
 
         public Uri ServiceUrl { get; private set; }
 
-        public AWSCredentials AWSCredentials { get; private set; }
+        public AWSCredentials AWSCredentials { get; private set; } = new BasicAWSCredentials("not", "used");
+
+        public string QueueUrl { get; private set; }
 
         protected override IContainerService CreateContainerService()
         {
@@ -49,12 +51,10 @@ namespace LocalStackIntegration
                 .UseContainer()
                 .WithName(ContainerName)
                 .UseImage("localstack/localstack:latest")
-                .WithEnvironment("SERVICES=sqs,lambda")
                 .WithEnvironment(
-                    "SERVICES=sqs,lambda",
+                    "SERVICES=sqs",
                     $"LOCALSTACK_API_KEY={localStackApiKey}",
-                    "LAMBDA_EXECUTOR=local",
-                    $"LAMBDA_FALLBACK_URL={dockerInternal}")
+                    $"LAMBDA_FORWARD_URL={dockerInternal}")
                 //.UseNetwork("host")
                 .ReuseIfExists()
                 .ExposePort(Port, ContainerPort)
@@ -69,9 +69,6 @@ namespace LocalStackIntegration
             ServiceUrl = new Uri($"http://localhost:{Port}");
             _context.LocalStack = this;
 
-            AWSCredentials = new BasicAWSCredentials("not", "used");
-
-            await Task.Delay(5000);
             var sqsConfig = new AmazonSQSConfig
             {
                 ServiceURL = ServiceUrl.ToString()
@@ -85,8 +82,13 @@ namespace LocalStackIntegration
                 ServiceURL = ServiceUrl.ToString()
             };
 
-            var queueAttributesAsync = await sqsClient.GetQueueAttributesAsync(createQueueResponse.QueueUrl, 
-                new List<string>{ QueueAttributeName.All }, cancellationToken);
+            var queueAttributesAsync = await sqsClient.GetQueueAttributesAsync(
+                createQueueResponse.QueueUrl,
+                new List<string>
+                {
+                    QueueAttributeName.All
+                },
+                cancellationToken);
 
             var lambdaClient = new AmazonLambdaClient(AWSCredentials, lambdaConfig);
             var createEventSourceMappingRequest = new CreateEventSourceMappingRequest
@@ -94,11 +96,17 @@ namespace LocalStackIntegration
                 EventSourceArn = queueAttributesAsync.QueueARN,
                 FunctionName = "simple"
             };
-            var createEventSourceMappingResponse = await lambdaClient
-                .CreateEventSourceMappingAsync(createEventSourceMappingRequest, cancellationToken);
+            try
+            {
+                var createEventSourceMappingResponse = await lambdaClient
+                    .CreateEventSourceMappingAsync(createEventSourceMappingRequest, cancellationToken);
+            }
+            catch(Exception ex)
+            {
+                throw;
+            }
 
-            var sendMessageRequest = new SendMessageRequest(createQueueResponse.QueueUrl, "test");
-            await sqsClient.SendMessageAsync(sendMessageRequest, cancellationToken);
+            QueueUrl = createQueueResponse.QueueUrl;
         }
     }
 }

@@ -70,7 +70,10 @@ namespace Logicality.AWS.Lambda.TestHost
 
             public void Configure(IApplicationBuilder app)
             {
-
+                app.Use((context, next) =>
+                {
+                    return next();
+                });
                 app.Map("/2015-03-31/functions", functions =>
                 {
                     functions.UseRouting();

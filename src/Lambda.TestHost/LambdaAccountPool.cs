@@ -8,11 +8,12 @@ namespace Logicality.AWS.Lambda.TestHost
     {
         private readonly uint _accountConcurrencyLimit;
         private int _counter;
+
         private readonly Dictionary<string, LambdaInstancePool> _instancePools
             = new Dictionary<string, LambdaInstancePool>(StringComparer.OrdinalIgnoreCase);
 
         public LambdaAccountPool(
-            uint accountConcurrencyLimit, 
+            uint accountConcurrencyLimit,
             IReadOnlyDictionary<string, LambdaFunctionInfo> lambdaFunctionInfos)
         {
             _accountConcurrencyLimit = accountConcurrencyLimit;
@@ -32,8 +33,8 @@ namespace Logicality.AWS.Lambda.TestHost
                 return null;
             }
 
-            return _instancePools.TryGetValue(functionName, out var item) 
-                ? item.Get() 
+            return _instancePools.TryGetValue(functionName, out var item)
+                ? item.Get()
                 : null;
         }
 

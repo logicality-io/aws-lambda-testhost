@@ -11,9 +11,10 @@
     <PackageReference Include="Amazon.Lambda.Serialization.SystemTextJson" Version="2.1.0" />
     <PackageReference Include="Amazon.Lambda.APIGatewayEvents" Version="2.3.0" />
     <PackageReference Include="AWSSDK.Lambda" Version="3.5.3.1" />
+    <PackageReference Include="AWSSDK.StepFunctions" Version="3.5.3" />
+    <PackageReference Include="Ductus.FluentDocker" Version="2.8.2" />
     <PackageReference Include="MartinCostello.Logging.XUnit" Version="0.1.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.8.0" />
-    <PackageReference Include="OneOf" Version="2.1.155" />
     <PackageReference Include="Shouldly" Version="4.0.1" />
     <PackageReference Include="xunit.core" Version="2.4.1" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.4.3">

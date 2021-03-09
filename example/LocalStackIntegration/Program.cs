@@ -23,43 +23,25 @@ namespace LocalStackIntegration
             var host = hostBuilder.Build();
             await host.StartAsync();
 
-            var credentials = new BasicAWSCredentials("not", "used");
-            var sqsClient = new AmazonSQSClient(credentials, new AmazonSQSConfig
+            var sqsClient = new AmazonSQSClient(context.LocalStack.AWSCredentials, new AmazonSQSConfig
             {
                 ServiceURL = context.LocalStack.ServiceUrl.ToString()
             });
-            var lambdaClient = new AmazonLambdaClient(credentials, new AmazonLambdaConfig
+            var lambdaClient = new AmazonLambdaClient(context.LocalStack.AWSCredentials, new AmazonLambdaConfig
             {
                 ServiceURL = context.LocalStack.ServiceUrl.ToString()
             });
-            var createQueueRequest = new CreateQueueRequest("test-q");
-            var createQueueResponse = await sqsClient.CreateQueueAsync(createQueueRequest);
 
-            var createFunctionRequest = new CreateFunctionRequest
+            var invokeRequest = new InvokeRequest
             {
-                FunctionName = nameof(SimpleLambdaFunction),
-                Runtime = "netcoreapp3.1",
-                Handler = nameof(SimpleLambdaFunction.FunctionHandler),
-                Role = "arn:aws:iam::000000000000:role/foo",
-                Code = new FunctionCode()
-                {
-                    S3Bucket = "foo",
-                    S3Key = "bar",
-                },
+                FunctionName = "simple",
+                Payload = "{}",
             };
 
-            var createFunctionResponse = await lambdaClient.CreateFunctionAsync(createFunctionRequest);
+            var invokeResponse = await lambdaClient.InvokeAsync(invokeRequest);
 
-            var createEventSourceMappingRequest = new CreateEventSourceMappingRequest
-            {
-                EventSourceArn = $"arn:aws:sqs:eus-east-1:000000000000:{createQueueRequest.QueueName}",
-                FunctionName = nameof(SimpleLambdaFunction),
-            };
-            
-            var createEventSourceMappingResponse = await lambdaClient.CreateEventSourceMappingAsync(createEventSourceMappingRequest);
-
-            var sendMessageRequest = new SendMessageRequest(createQueueResponse.QueueUrl, "message");
-            await sqsClient.SendMessageAsync(sendMessageRequest);
+            /*var sendMessageRequest = new SendMessageRequest(context.LocalStack.QueueUrl, "message");
+            await sqsClient.SendMessageAsync(sendMessageRequest);*/
             
             await host.WaitForShutdownAsync();
         }
@@ -94,8 +76,8 @@ namespace LocalStackIntegration
 
                     services
                         .AddSequentialHostedServices("root", r => r
-                            .Host<LambdaTestHostHostedService>()
-                            .Host<LocalStackHostedService>());
+                            .Host<LambdaTestHostHostedService>());
+                    //.Host<LocalStackHostedService>());
                 })
                 .UseSerilog(logger);
 

@@ -20,7 +20,10 @@ namespace LocalStackIntegration
 
         public async Task StartAsync(CancellationToken cancellationToken)
         {
-            var settings = new LambdaTestHostSettings(() => new TestLambdaContext());
+            var settings = new LambdaTestHostSettings(() => new TestLambdaContext())
+            {
+                WebHostUrl = "http://127.0.0.1:5004"
+            };
             settings.AddFunction(new LambdaFunctionInfo(
                 nameof(SimpleLambdaFunction),
                 typeof(SimpleLambdaFunction),

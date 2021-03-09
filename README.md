@@ -1,6 +1,6 @@
 # AWS Lambda TestHost
 
-A .NET host that can host and execute .NET Lambdas for simulation and debugging
+A .NET host that can host and execute .NET Lambdas for simulation, testing, and debugging
 purposes.
 
 ## Packages
@@ -43,6 +43,32 @@ settings.AddFunction(
         reservedConcurrency: 1); // Optional: This will limit the number of concurrent invocations
 ```
 
+Create an `AmazonLambdaClient`:
+
+```csharp
+_testHost = await LambdaTestHost.Start(_settings);
+var awsCredentials = new BasicAWSCredentials("not", "used");
+var lambdaConfig = new AmazonLambdaConfig
+{
+    ServiceURL = _testHost.ServiceUrl.ToString(),
+    MaxErrorRetry = 0
+};
+_lambdaClient = new AmazonLambdaClient(awsCredentials, lambdaConfig);
+```
+
+Use the client to invoke the lambda:
+
+```
+var invokeRequest = new InvokeRequest
+{
+    InvocationType = InvocationType.RequestResponse,
+    Payload = "ReverseMe",
+    FunctionName = "ReverseStringFunction",
+};
+var invokeResponse = _lambdaClient.InvokeAsync(invokeRequest);
+...
+```
+
 ### Comparison with AWS .NET Mock Lambda Test Tool
 
 This is not meant to replace the [Test Tool][lambda-test-tool] but to augment it. Key differences are:
@@ -61,8 +87,7 @@ This is not meant to replace the [Test Tool][lambda-test-tool] but to augment it
 
 ### Using with StepFunctions Local
 
-
-See [`example/StepFunctionsLocal`](example/StepFunctionsLocal) for runnable example.
+See an [`integration test`](test/Lambda.TestHost.Tests/StepFunctionsIntegrationTests.cs) for a runnable example.
 
 ## Building
 

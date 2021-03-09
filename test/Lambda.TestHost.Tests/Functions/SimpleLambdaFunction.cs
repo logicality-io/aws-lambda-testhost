@@ -1,7 +1,7 @@
 ﻿using Amazon.Lambda.Core;
 using Amazon.Lambda.Serialization.SystemTextJson;
 
-namespace StepFunctionsLocal
+namespace Logicality.AWS.Lambda.TestHost.Functions
 {
     public class SimpleLambdaFunction
     {

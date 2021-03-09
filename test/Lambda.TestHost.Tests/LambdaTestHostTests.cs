@@ -1,12 +1,10 @@
 ﻿using System;
-using System.DirectoryServices.ActiveDirectory;
 using System.IO;
 using System.Net;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Amazon.Lambda;
 using Amazon.Lambda.APIGatewayEvents;
-using Amazon.Lambda.Core;
 using Amazon.Lambda.Model;
 using Amazon.Runtime;
 using Logicality.AWS.Lambda.TestHost.Functions;
@@ -180,19 +178,5 @@ namespace Logicality.AWS.Lambda.TestHost
 
         public async Task DisposeAsync() 
             => await _testHost.DisposeAsync();
-
-        private class XunitLambdaLogger : ILambdaLogger
-        {
-            private readonly ITestOutputHelper _outputHelper;
-
-            public XunitLambdaLogger(ITestOutputHelper outputHelper)
-            {
-                _outputHelper = outputHelper;
-            }
-
-            public void Log(string message) => _outputHelper.WriteLine(message);
-
-            public void LogLine(string message) => _outputHelper.WriteLine(message);
-        }
     }
 }
