@@ -10,7 +10,7 @@ using Logicality.AWS.Lambda.TestHost.Functions;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace Logicality.AWS.Lambda.TestHost
+namespace Logicality.AWS.Lambda.TestHost.StepFunctions
 {
     public class StepFunctionsIntegrationTests: IAsyncLifetime
     {
