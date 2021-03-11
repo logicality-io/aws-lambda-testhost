@@ -40,6 +40,10 @@ namespace Logicality.AWS.Lambda.TestHost.LocalStack
             var invokeResponse = await lambdaClient.InvokeAsync(invokeRequest);
 
             invokeResponse.HttpStatusCode.ShouldBe(HttpStatusCode.OK);
+
+            // Fails:
+            // 2021-03-11T09:01:18:WARNING:bootstrap.py: Thread run method <function AdaptiveThreadPool.submit.<locals>._run at 0x7f1ed537d160>(None) failed:
+            // Unable to find listener for service "lambda" - please make sure to include it in $SERVICES
         }
 
         [Fact]

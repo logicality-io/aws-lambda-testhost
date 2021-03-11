@@ -46,7 +46,7 @@ namespace Logicality.AWS.Lambda.TestHost.LocalStack
                 .WithName($"lambda-testhost-localstack-{Guid.NewGuid()}")
                 .UseImage("localstack/localstack:latest")
                 .WithEnvironment(
-                    "SERVICES={services}",
+                    $"SERVICES={services}",
                     $"LAMBDA_FORWARD_URL={dockerInternal}")
                 .ExposePort(0, ContainerPort)
                 .WaitForPort($"{ContainerPort}/tcp", 10000, "127.0.0.1")
