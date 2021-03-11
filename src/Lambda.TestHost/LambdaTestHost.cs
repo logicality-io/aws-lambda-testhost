@@ -21,11 +21,14 @@ namespace Logicality.AWS.Lambda.TestHost
     {
         private readonly IWebHost _webHost;
 
-        private LambdaTestHost(IWebHost host, Uri serviceUrl)
+        private LambdaTestHost(LambdaTestHostSettings settings, IWebHost host, Uri serviceUrl)
         {
             _webHost = host;
+            Settings = settings;
             ServiceUrl = serviceUrl;
         }
+
+        public LambdaTestHostSettings Settings { get; }
 
         /// <summary>
         /// The URL that the LambdaTestHost will handle invocation requests.
@@ -47,7 +50,7 @@ namespace Logicality.AWS.Lambda.TestHost
 
             var serviceUrl = host.GetUris().Single();
 
-            return new LambdaTestHost(host, serviceUrl);
+            return new LambdaTestHost(settings, host, serviceUrl);
         }
 
         private class Startup
@@ -88,7 +91,7 @@ namespace Logicality.AWS.Lambda.TestHost
             private async Task HandleInvocation(HttpContext ctx)
             {
                 var logger = ctx.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger<LambdaTestHost>();
-                var functionName = (string) ctx.Request.RouteValues["functionName"];
+                var functionName = (string)ctx.Request.RouteValues["functionName"]!;
                 if (!_settings.Functions.TryGetValue(functionName, out var lambdaFunction))
                 {
                     ctx.Response.StatusCode = 404;
@@ -118,7 +121,10 @@ namespace Logicality.AWS.Lambda.TestHost
                     var responseBody = await ProcessReturnAsync(lambdaFunction, lambdaReturnObject);
 
                     ctx.Response.StatusCode = 200;
-                    await ctx.Response.WriteAsync(responseBody);
+                    if (responseBody != null)
+                    {
+                        await ctx.Response.WriteAsync(responseBody);
+                    }
 
                     _lambdaAccountPool.Return(lambdaInstance);
                 }
@@ -232,7 +238,7 @@ namespace Logicality.AWS.Lambda.TestHost
                 return await reader.ReadToEndAsync();
             }
 
-            public static string GenerateErrorMessage(Exception e)
+            public static string GenerateErrorMessage(Exception? e)
             {
                 var sb = new StringBuilder();
 

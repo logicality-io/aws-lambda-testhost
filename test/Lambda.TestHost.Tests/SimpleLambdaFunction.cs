@@ -1,7 +1,8 @@
-﻿using Amazon.Lambda.Core;
+﻿using System.Linq;
+using Amazon.Lambda.Core;
 using Amazon.Lambda.Serialization.SystemTextJson;
 
-namespace StepFunctionsLocal
+namespace Logicality.AWS.Lambda.TestHost
 {
     public class SimpleLambdaFunction
     {
@@ -10,18 +11,18 @@ namespace StepFunctionsLocal
         {
             return new SimpleResponse
             {
-                Foo = request.Foo
+                Reverse = new string(request.Data.Reverse().ToArray())
             };
         }
 
         public class SimpleRequest
         {
-            public string Foo { get; set; }
+            public string Data { get; set; }
         }
 
         public class SimpleResponse
         {
-            public string Foo { get; set; }
+            public string Reverse { get; set; }
         }
     }
 }

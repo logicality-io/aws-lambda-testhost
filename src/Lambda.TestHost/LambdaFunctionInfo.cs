@@ -42,16 +42,20 @@ namespace Logicality.AWS.Lambda.TestHost
             }
 
             ReservedConcurrency = reservedConcurrency;
+
+            HandlerString = $"{functionType.Assembly.GetName().Name}::{functionType.FullName}::{handlerMethod}";
         }
 
-        internal Type Type { get; }
+        public Type Type { get; }
 
-        internal string Name { get; }
+        public string Name { get; }
 
-        internal MethodInfo HandlerMethod { get; }
+        public MethodInfo HandlerMethod { get; }
 
-        internal ILambdaSerializer? Serializer { get; }
+        public ILambdaSerializer? Serializer { get; }
 
-        internal int? ReservedConcurrency { get; } = null;
+        public int? ReservedConcurrency { get; } = null;
+
+        public string HandlerString { get; }
     }
 }

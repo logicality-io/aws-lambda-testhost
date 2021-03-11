@@ -11,7 +11,6 @@ namespace Logicality.AWS.Lambda.TestHost.LocalStack
 {
     public class LocalStackFixture : IAsyncDisposable
     {
-        private readonly LambdaTestHost _lambdaTestHost;
         private readonly IContainerService _localStack;
         private readonly ITestOutputHelper _outputHelper;
         private const int ContainerPort = 4566;
@@ -22,12 +21,14 @@ namespace Logicality.AWS.Lambda.TestHost.LocalStack
             ITestOutputHelper outputHelper)
         {
             ServiceUrl = serviceUrl;
-            _lambdaTestHost = lambdaTestHost;
+            LambdaTestHost = lambdaTestHost;
             _localStack = localStack;
             _outputHelper = outputHelper;
         }
         
         public Uri ServiceUrl { get; }
+
+        public LambdaTestHost LambdaTestHost { get; }
 
         public static async Task<LocalStackFixture> Create(ITestOutputHelper outputHelper, string services)
         {
@@ -39,7 +40,13 @@ namespace Logicality.AWS.Lambda.TestHost.LocalStack
                 nameof(SimpleLambdaFunction.FunctionHandler)));
             var lambdaTestHost = await LambdaTestHost.Start(settings);
 
-            var dockerInternal = new UriBuilder(lambdaTestHost.ServiceUrl);
+            var lambdaForwardUrl = new UriBuilder(lambdaTestHost.ServiceUrl)
+            {
+                Host = "host.docker.internal"
+            }.ToString();
+            lambdaForwardUrl = lambdaForwardUrl.Remove(lambdaForwardUrl.Length - 1);
+
+            outputHelper.WriteLine($"Using LAMBDA_FORWARD_URL={lambdaForwardUrl}");
 
             var localStack = new Builder()
                 .UseContainer()
@@ -47,7 +54,8 @@ namespace Logicality.AWS.Lambda.TestHost.LocalStack
                 .UseImage("localstack/localstack:latest")
                 .WithEnvironment(
                     $"SERVICES={services}",
-                    $"LAMBDA_FORWARD_URL={dockerInternal}")
+                    $"LAMBDA_FORWARD_URL={lambdaForwardUrl}",
+                    "LS_LOG=debug")
                 .ExposePort(0, ContainerPort)
                 .WaitForPort($"{ContainerPort}/tcp", 10000, "127.0.0.1")
                 .Build()
@@ -66,7 +74,7 @@ namespace Logicality.AWS.Lambda.TestHost.LocalStack
 
         public async ValueTask DisposeAsync()
         {
-            await _lambdaTestHost.DisposeAsync();
+            await LambdaTestHost.DisposeAsync();
 
             var hosts = new Hosts().Discover();
             var docker = hosts.FirstOrDefault(x => x.IsNative) ?? hosts.FirstOrDefault(x => x.Name == "default");
