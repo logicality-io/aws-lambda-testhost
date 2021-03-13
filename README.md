@@ -1,7 +1,7 @@
 # AWS Lambda TestHost
 
-A .NET host that can host and execute .NET Lambdas for simulation, testing, and debugging
-purposes.
+A .NET implementation of AWS Lambda's Invoke API that can host and execute .NET Lambdas
+for simulation, testing, and debugging purposes.
 
 ## Packages
 
@@ -12,8 +12,8 @@ purposes.
 ## Using
 
 It works by running a web server that can handle lambda invocation requests,
-activate the appropriate lambda class, invoking it's handler (dealing with any
-serialization needs) and returning responses.
+activate the appropriate lambda class, invoke it's handler (dealing with any
+serialization needs) and returning a response, if any.
 
 Given this simple function:
 
@@ -46,14 +46,14 @@ settings.AddFunction(
 Create an `AmazonLambdaClient`:
 
 ```csharp
-_testHost = await LambdaTestHost.Start(_settings);
+using var testHost = await LambdaTestHost.Start(_settings);
 var awsCredentials = new BasicAWSCredentials("not", "used");
 var lambdaConfig = new AmazonLambdaConfig
 {
-    ServiceURL = _testHost.ServiceUrl.ToString(),
+    ServiceURL = testHost.ServiceUrl.ToString(),
     MaxErrorRetry = 0
 };
-_lambdaClient = new AmazonLambdaClient(awsCredentials, lambdaConfig);
+var lambdaClient = new AmazonLambdaClient(awsCredentials, lambdaConfig);
 ```
 
 Use the client to invoke the lambda:
@@ -65,29 +65,40 @@ var invokeRequest = new InvokeRequest
     Payload = "ReverseMe",
     FunctionName = "ReverseStringFunction",
 };
-var invokeResponse = _lambdaClient.InvokeAsync(invokeRequest);
+var invokeResponse = lambdaClient.InvokeAsync(invokeRequest);
 ...
 ```
 
 ### Comparison with AWS .NET Mock Lambda Test Tool
 
-This is not meant to replace the [Test Tool][lambda-test-tool] but to augment it. Key differences are:
+This is not meant to replace the [Lambda Test Tool][lambda-test-tool] but to augment it.
+Key differences are:
 
-- `Test Tool` works against a single Lambda at a time.
-- `Test Host` is a library you can use in Tests projects or Development servers
-  and can host multiple lambdas. `Test Host` is useful for developing /
-  debugging multiple lambdas at once (i.e. a Lambda "Application", StepFunctions
-  etc) and exercising them with code. Test Tool is GUI and manual.
-- `Test Tool` uses `AssemblyLoadContext` to prevent version conflicts with your
-  code. `Test Host` uses direct references so any dependencies will be the same version.
-- You can use AWSSDK Lambda client to invoke functions hosted by `Test Host`.
-- Like `Test Tool`, `Test Host` is not a local Lambda Environment and thus "not
-  intended to diagnose platform specific issue but instead it can be useful for
-  debugging application logic issues.".
+- Can work with multiple Lambdas at a time vs Lambda Test Tool's one at a time.
+- Is a library you can use in Tests projects or local "development" servers. 
+  `Test Host` is useful for developing / debugging multiple lambdas at once 
+  (i.e. a Lambda "Application", StepFunctions   etc) and exercising them 
+  with code. Lambda Test Tool is GUI and manual.
+- `Test Host` uses direct references so any dependencies will not be isolated. Lambda Test Tool
+  uses `AssemblyLoadContext` to prevent version conflicts between the tool and your code. 
+- You can use AWSSDK Lambda client to your invoke functions.
 
-### Using with StepFunctions Local
+Like Lambda Test Tool, Test Host is not a local Lambda Environment and thus "not
+intended to diagnose platform specific issue but instead it can be useful for
+debugging application logic issues.".
 
-See an [`integration test`](test/Lambda.TestHost.Tests/StepFunctionsIntegrationTests.cs) for a runnable example.
+### Using with Step Functions Local
+
+- See [Step Functions(https://docs.aws.amazon.com/step-functions/latest/dg/sfn-local.html) docs. 
+- See an [`integration test`](test/Lambda.TestHost.Tests/StepFunctionsIntegrationTests.cs) for an example
+  that uses Step Functions container with `LAMBDA_ENDPOINT` configured to call back to Lambda Test Host.
+
+### Using with LocalStack
+
+- See [Stepfunction Local](https://docs.aws.amazon.com/step-functions/latest/dg/sfn-local.html) docs.
+- See an [`integration test`](test/Lambda.TestHost.Tests/StepFunctionsIntegrationTests.cs) for an example
+  that uses LocalStack container with `LAMBDA_FORWARD_URL` configued to call back to Lambda Test Host.
+
 
 ## Building
 

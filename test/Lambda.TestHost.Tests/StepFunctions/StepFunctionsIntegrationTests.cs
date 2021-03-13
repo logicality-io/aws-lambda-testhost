@@ -6,7 +6,6 @@ using Amazon.StepFunctions;
 using Amazon.StepFunctions.Model;
 using Ductus.FluentDocker.Builders;
 using Ductus.FluentDocker.Services;
-using Logicality.AWS.Lambda.TestHost.Functions;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -27,7 +26,7 @@ namespace Logicality.AWS.Lambda.TestHost.StepFunctions
         }
 
         [Fact]
-        public async Task Can_be_invoked_from_stepfunctions_local()
+        public async Task Can_be_invoked_from_step_functions_local()
         {
             // 1. Create the StepFunctions Client
             var credentials = new BasicAWSCredentials("not", "used");
@@ -85,7 +84,6 @@ namespace Logicality.AWS.Lambda.TestHost.StepFunctions
             // 4. Poll and wait for the 
             while (true)
             {
-
                 var getExecutionHistoryResponse = await client.GetExecutionHistoryAsync(getExecutionHistoryRequest);
 
                 var historyEvent = getExecutionHistoryResponse.Events.Last();

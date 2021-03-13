@@ -1,10 +1,12 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Amazon.Runtime;
 using Ductus.FluentDocker.Builders;
 using Ductus.FluentDocker.Commands;
 using Ductus.FluentDocker.Services;
-using Logicality.AWS.Lambda.TestHost.Functions;
+using Microsoft.Extensions.Logging;
 using Xunit.Abstractions;
 
 namespace Logicality.AWS.Lambda.TestHost.LocalStack
@@ -24,16 +26,31 @@ namespace Logicality.AWS.Lambda.TestHost.LocalStack
             LambdaTestHost = lambdaTestHost;
             _localStack = localStack;
             _outputHelper = outputHelper;
+
+            AWSCredentials =  new BasicAWSCredentials("not", "used");
         }
         
         public Uri ServiceUrl { get; }
 
         public LambdaTestHost LambdaTestHost { get; }
 
-        public static async Task<LocalStackFixture> Create(ITestOutputHelper outputHelper, string services)
+        public AWSCredentials AWSCredentials { get; }
+
+        public static async Task<LocalStackFixture> Create(
+            ITestOutputHelper outputHelper,
+            string services,
+            bool setLambdaForwardUrl = false,
+            bool setLambdaFallbackUrl = false)
         {
             // Runs a the Lambda TestHost (invoke api) on a random port
-            var settings = new LambdaTestHostSettings(() => new TestLambdaContext());
+            var settings = new LambdaTestHostSettings(() => new TestLambdaContext())
+            {
+                ConfigureLogging = logging =>
+                {
+                    logging.AddXUnit(outputHelper);
+                    logging.SetMinimumLevel(LogLevel.Debug);
+                }
+            };
             settings.AddFunction(new LambdaFunctionInfo(
                 nameof(SimpleLambdaFunction),
                 typeof(SimpleLambdaFunction),
@@ -46,20 +63,33 @@ namespace Logicality.AWS.Lambda.TestHost.LocalStack
             }.ToString();
             lambdaForwardUrl = lambdaForwardUrl.Remove(lambdaForwardUrl.Length - 1);
 
-            outputHelper.WriteLine($"Using LAMBDA_FORWARD_URL={lambdaForwardUrl}");
 
-            var localStack = new Builder()
+            var environment = new List<string>
+            {
+                $"SERVICES={services}",
+                "LS_LOG=debug",
+            };
+            if (setLambdaFallbackUrl)
+            {
+                environment.Add($"LAMBDA_FALLBACK_URL={lambdaForwardUrl}");
+                outputHelper.WriteLine($"Using LAMBDA_FALLBACK_URL={lambdaForwardUrl}");
+            }
+
+            if (setLambdaForwardUrl)
+            {
+                environment.Add($"LAMBDA_FORWARD_URL={lambdaForwardUrl}");
+                outputHelper.WriteLine($"Using LAMBDA_FORWARD_URL={lambdaForwardUrl}");
+            }
+
+            var localStackBuilder = new Builder()
                 .UseContainer()
                 .WithName($"lambda-testhost-localstack-{Guid.NewGuid()}")
                 .UseImage("localstack/localstack:latest")
-                .WithEnvironment(
-                    $"SERVICES={services}",
-                    $"LAMBDA_FORWARD_URL={lambdaForwardUrl}",
-                    "LS_LOG=debug")
+                .WithEnvironment(environment.ToArray())
                 .ExposePort(0, ContainerPort)
-                .WaitForPort($"{ContainerPort}/tcp", 10000, "127.0.0.1")
-                .Build()
-                .Start();
+                .WaitForPort($"{ContainerPort}/tcp", 10000, "127.0.0.1");
+
+            var localStack = localStackBuilder.Build().Start();
 
             var port = localStack
                 .GetConfiguration()

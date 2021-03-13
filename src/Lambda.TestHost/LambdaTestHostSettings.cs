@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Threading;
 using Amazon.Lambda.Core;
+using Microsoft.Extensions.Logging;
 
 namespace Logicality.AWS.Lambda.TestHost
 {
@@ -27,6 +28,8 @@ namespace Logicality.AWS.Lambda.TestHost
         public uint AccountConcurrencyLimit { get; set; } = 1000;
 
         internal Func<ILambdaContext> CreateContext { get; }
+
+        public Action<ILoggingBuilder> ConfigureLogging { get; set; } = _ => { };
 
         public IReadOnlyDictionary<string, LambdaFunctionInfo> Functions => _functions;
 

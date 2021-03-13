@@ -40,6 +40,7 @@ namespace Logicality.AWS.Lambda.TestHost
             var host = WebHost
                 .CreateDefaultBuilder<Startup>(Array.Empty<string>())
                 .UseUrls(settings.WebHostUrl)
+                .ConfigureLogging(settings.ConfigureLogging)
                 .ConfigureServices(services =>
                 {
                     services.AddSingleton(settings);
@@ -73,18 +74,23 @@ namespace Logicality.AWS.Lambda.TestHost
 
             public void Configure(IApplicationBuilder app)
             {
+                app.UseRouting();
+
                 app.Use((context, next) =>
                 {
+                    if (context.Request.Method == "POST" && context.Request.Headers.ContainsKey("lambda-function-name"))
+                    {
+                        var functionName = context.Request.Headers["lambda-function-name"];
+                        context.Request.Path = $"/2015-03-31/functions/{functionName}/invocations";
+                        return next();
+                    }
+
                     return next();
                 });
-                app.Map("/2015-03-31/functions", functions =>
-                {
-                    functions.UseRouting();
 
-                    functions.UseEndpoints(endpoints =>
-                    {
-                        endpoints.MapPost("/{functionName}/invocations", HandleInvocation);
-                    });
+                app.UseEndpoints(endpoints =>
+                {
+                    endpoints.MapPost("/2015-03-31/functions/{functionName}/invocations", HandleInvocation);
                 });
             }
 
@@ -100,7 +106,7 @@ namespace Logicality.AWS.Lambda.TestHost
 
                 try
                 {
-                    var streamReader = new StreamReader(ctx.Request.Body, Encoding.UTF8);
+                    using var streamReader = new StreamReader(ctx.Request.Body, Encoding.UTF8);
                     var payload = await streamReader.ReadToEndAsync();
 
                     var lambdaInstance = _lambdaAccountPool.Get(functionName);
