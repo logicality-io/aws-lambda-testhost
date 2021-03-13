@@ -36,6 +36,12 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Lambda.TestHost.Tests", "te
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Lambda.ClientExtensions", "src\Lambda.ClientExtensions\Lambda.ClientExtensions.csproj", "{917F3B51-E141-4581-96F6-C740AE5A48D3}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".github", ".github", "{E91F31C1-3C45-4E79-899B-F1EA814E16E8}"
+	ProjectSection(SolutionItems) = preProject
+		.github\workflows\ci.yml = .github\workflows\ci.yml
+		.github\workflows\pr.yml = .github\workflows\pr.yml
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -103,6 +109,7 @@ Global
 		{56613C76-4EF3-454A-9F9F-3EE9463D9606} = {5C8116D0-8102-41DF-BDC8-CBB0814FE181}
 		{3DF4B3B7-025E-4395-9BE5-3CFC80A74716} = {C927BFA6-D159-4BCB-BE7B-E586AE3D0618}
 		{917F3B51-E141-4581-96F6-C740AE5A48D3} = {5C8116D0-8102-41DF-BDC8-CBB0814FE181}
+		{E91F31C1-3C45-4E79-899B-F1EA814E16E8} = {C77C6831-8CB9-4DE6-9EBA-A906C1426CEB}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {121B5839-F67E-4C73-AD61-13E9D48C16CF}

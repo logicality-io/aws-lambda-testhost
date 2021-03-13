@@ -113,16 +113,19 @@ namespace Logicality.AWS.Lambda.TestHost.StepFunctions
                 nameof(SimpleLambdaFunction.FunctionHandler)));
             _lambdaTestHost = await LambdaTestHost.Start(settings);
 
-            var dockerInternal = new UriBuilder(_lambdaTestHost.ServiceUrl)
+            var url = new UriBuilder(_lambdaTestHost.ServiceUrl)
             {
-                Host = "host.docker.internal"
+                Host = Environment.OSVersion.Platform == PlatformID.Win32NT
+                    ? "host.docker.internal"
+                    : "172.17.0.1"
             };
+
             _containerService = new Builder()
                 .UseContainer()
                 .WithName("lambda-testhost-stepfunctions")
                 .UseImage("amazon/aws-stepfunctions-local:latest")
                 .WithEnvironment(
-                    $"LAMBDA_ENDPOINT={dockerInternal.Uri}")
+                    $"LAMBDA_ENDPOINT={url}")
                 .ReuseIfExists()
                 .ExposePort(Port, ContainerPort)
                 .WaitForPort($"{ContainerPort}/tcp", 10000, "127.0.0.1")
